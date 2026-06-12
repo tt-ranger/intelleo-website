@@ -1,92 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Minimal Website</title>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --dark: #1f2937;
-            --light: #f3f4f6;
-        }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            margin: 0;
-            padding: 0;
-            color: var(--dark);
-            line-height: 1.6;
-        }
-        header {
-            background: white;
-            padding: 1rem 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-        }
-        .logo { font-weight: bold; font-size: 1.25rem; color: var(--primary); }
-        nav a { margin-left: 1.5rem; text-decoration: none; color: var(--dark); }
-        nav a:hover { color: var(--primary); }
-        .hero {
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            padding: 5rem 5%;
-            text-align: center;
-        }
-        .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; }
-        .btn {
-            background: var(--primary);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 1rem;
-        }
-        .container { max-width: 800px; margin: 4rem auto; padding: 0 1rem; }
-        footer { background: var(--dark); color: white; text-align: center; padding: 2rem; margin-top: 4rem; }
-        input, textarea { width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem 0; border: 1px solid #ccc; border-radius: 4px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelleo — Deep Tech Consulting · AI, ML, Data & Software for AI</title>
+<meta name="description" content="Intelleo is a deep tech consulting firm. We turn AI into business value — from ML models in production to data pipelines, databases and RAG systems.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0F1A;
+  --panel:#121828;
+  --panel-2:#0E1320;
+  --line:#222B42;
+  --text:#EDEFF7;
+  --muted:#8A93AB;
+  --copper:#E0935A;
+  --copper-bright:#F2B07C;
+  --signal:#5AC8E0;
+  --display:"Chakra Petch",sans-serif;
+  --body:"Manrope",sans-serif;
+  --mono:"JetBrains Mono",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--bg);color:var(--text);line-height:1.65;font-size:16px}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--copper);display:block;margin-bottom:14px}
+h1,h2,h3{font-family:var(--display);line-height:1.1;letter-spacing:-.005em}
+h2{font-size:clamp(26px,3.8vw,40px);font-weight:600;margin-bottom:16px}
+section{padding:92px 0}
+.muted{color:var(--muted)}
+
+/* reveal on scroll */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:50;background:rgba(11,15,26,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+.logo{font-family:var(--display);font-weight:700;font-size:20px;text-decoration:none;display:flex;align-items:center;gap:10px;letter-spacing:.01em}
+.logo .node{width:10px;height:10px;border:2px solid var(--copper);border-radius:50%;position:relative}
+.logo .node::after{content:"";position:absolute;inset:2px;background:var(--copper);border-radius:50%;animation:nodepulse 2.4s ease-in-out infinite}
+@keyframes nodepulse{0%,100%{opacity:.35}50%{opacity:1}}
+.nav-links{display:flex;gap:28px;font-size:14px;font-weight:500}
+.nav-links a{text-decoration:none;color:var(--muted);transition:color .15s}
+.nav-links a:hover,.nav-links a:focus-visible{color:var(--text)}
+.nav-cta{font-family:var(--mono);font-size:13px;text-decoration:none;border:1px solid var(--copper);color:var(--copper-bright);padding:9px 18px;border-radius:6px;transition:all .2s}
+.nav-cta:hover,.nav-cta:focus-visible{background:var(--copper);color:var(--bg)}
+@media(max-width:760px){.nav-links{display:none}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:120px 0 100px;overflow:hidden}
+.hero-inner{position:relative;z-index:2;max-width:720px}
+.hero h1{font-size:clamp(40px,6vw,68px);font-weight:700;margin-bottom:22px}
+.hero h1 .glow{color:var(--copper-bright);text-shadow:0 0 28px rgba(224,147,90,.35)}
+.hero p.lede{font-size:18px;color:var(--muted);max-width:52ch;margin-bottom:34px}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:14px;text-decoration:none;padding:13px 26px;border-radius:6px;transition:all .2s}
+.btn-primary{background:var(--copper);color:#16100A;font-weight:500}
+.btn-primary:hover,.btn-primary:focus-visible{background:var(--copper-bright);box-shadow:0 0 24px rgba(224,147,90,.35)}
+.btn-ghost{border:1px solid var(--line);color:var(--text)}
+.btn-ghost:hover,.btn-ghost:focus-visible{border-color:var(--copper)}
+
+/* signature: circuit traces with travelling pulses */
+.traces{position:absolute;inset:0;z-index:1;opacity:.55;pointer-events:none}
+.traces path{fill:none;stroke:var(--line);stroke-width:1.5}
+.traces .pulse{stroke:var(--copper);stroke-width:2;stroke-linecap:round;stroke-dasharray:46 1200;animation:travel 7s linear infinite}
+.traces .pulse.s{stroke:var(--signal);animation-duration:9s;animation-delay:1.6s}
+.traces .pulse.d2{animation-delay:3.2s}
+.traces circle{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+@keyframes travel{from{stroke-dashoffset:1246}to{stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){
+  .traces .pulse{animation:none;stroke-dasharray:none;opacity:.5}
+  .logo .node::after{animation:none;opacity:.8}
+  .reveal{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+}
+
+/* ---------- practices ---------- */
+.practices{background:var(--panel-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.practice-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:42px}
+@media(max-width:820px){.practice-grid{grid-template-columns:1fr}}
+.practice{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:32px;position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
+.practice:hover{border-color:var(--copper);transform:translateY(-3px)}
+.practice::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--copper),transparent 70%);opacity:0;transition:opacity .25s}
+.practice:hover::before{opacity:1}
+.practice .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal);display:block;margin-bottom:14px}
+.practice h3{font-size:21px;margin-bottom:10px}
+.practice p{font-size:14.5px;color:var(--muted)}
+.practice ul{list-style:none;margin-top:16px}
+.practice li{padding:7px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.practice li::before{content:"▸ ";color:var(--copper)}
+
+/* ---------- approach ---------- */
+.approach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:42px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+@media(max-width:760px){.approach-grid{grid-template-columns:1fr}}
+.phase{padding:30px 26px;border-right:1px solid var(--line);background:var(--panel-2);transition:background .25s}
+.phase:last-child{border-right:none}
+@media(max-width:760px){.phase{border-right:none;border-bottom:1px solid var(--line)}.phase:last-child{border-bottom:none}}
+.phase:hover{background:var(--panel)}
+.phase .num{font-family:var(--mono);font-size:12px;color:var(--copper);display:block;margin-bottom:14px}
+.phase h3{font-size:17px;margin-bottom:8px}
+.phase p{font-size:14px;color:var(--muted)}
+
+/* ---------- contact ---------- */
+.contact{border-top:1px solid var(--line)}
+.contact-inner{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+@media(max-width:760px){.contact-inner{grid-template-columns:1fr}}
+.email-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:32px;position:relative;overflow:hidden}
+.email-card::after{content:"";position:absolute;bottom:0;right:0;width:140px;height:140px;background:radial-gradient(circle at bottom right,rgba(224,147,90,.18),transparent 70%);pointer-events:none}
+.email-card .k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:12px}
+.email-card a{font-family:var(--mono);font-size:18px;color:var(--copper-bright);text-decoration:none;word-break:break-all}
+.email-card a:hover,.email-card a:focus-visible{text-decoration:underline}
+
+footer{padding:28px 0;border-top:1px solid var(--line)}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.foot .mono{font-family:var(--mono);font-size:12px;color:var(--copper)}
+</style>
 </head>
 <body>
 
-    <header>
-        <div class="logo">MyBrand</div>
-        <nav>
-            <a href="#about">About</a>
-            <a href="#contact">Contact</a>
-        </nav>
-    </header>
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#top"><span class="node" aria-hidden="true"></span>Intelleo</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#practices">What we do</a>
+      <a href="#approach">How we work</a>
+    </nav>
+    <a class="nav-cta" href="#contact">Start a conversation</a>
+  </div>
+</header>
 
-    <section class="hero">
-        <h1>Welcome to My New Website</h1>
-        <p>Built with minimal code, hosted effortlessly on GitHub Pages.</p>
-        <a href="#about" class="btn">Learn More</a>
-    </section>
+<main id="top">
 
-    <div class="container" id="about">
-        <h2>About Me</h2>
-        <p>This is a quick draft website designed to test hosting, custom domains, and layout configurations. You can easily edit any of this text or change the colors in the style block above to match your vision.</p>
+<!-- HERO -->
+<section class="hero">
+  <svg class="traces" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <path id="t1" d="M-20 120 H 420 L 470 170 H 760 L 810 120 H 1230"/>
+    <path id="t2" d="M-20 300 H 300 L 350 250 H 660 L 710 300 H 1230"/>
+    <path id="t3" d="M-20 460 H 520 L 570 410 H 900 L 950 460 H 1230"/>
+    <use href="#t1" class="pulse"/>
+    <use href="#t2" class="pulse s"/>
+    <use href="#t3" class="pulse d2"/>
+    <circle cx="470" cy="170" r="4"/>
+    <circle cx="810" cy="120" r="4"/>
+    <circle cx="350" cy="250" r="4"/>
+    <circle cx="710" cy="300" r="4"/>
+    <circle cx="570" cy="410" r="4"/>
+    <circle cx="950" cy="460" r="4"/>
+  </svg>
+  <div class="wrap hero-inner">
+    <span class="eyebrow">Deep Tech Consulting</span>
+    <h1>Deep tech, delivered as <span class="glow">business value.</span></h1>
+    <p class="lede">Intelleo helps you take AI from idea to impact — designing the use case, building the models, architecting the data backbone, and engineering the software that holds it all together in production.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="#contact">Talk to us</a>
+      <a class="btn btn-ghost" href="#practices">Explore our practices</a>
     </div>
+  </div>
+</section>
 
-    <div class="container" id="contact">
-        <h2>Get In Touch</h2>
-        <form onsubmit="event.preventDefault(); alert('Form submitted! (This is a placeholder action)');">
-            <label>Name</label>
-            <input type="text" placeholder="Your Name" required>
-            <label>Email</label>
-            <input type="email" placeholder="you@example.com" required>
-            <label>Message</label>
-            <textarea rows="4" placeholder="Your message here..." required></textarea>
-            <button type="submit" class="btn" style="border:none; cursor:pointer;">Send Message</button>
-        </form>
+<!-- PRACTICES -->
+<section class="practices" id="practices">
+  <div class="wrap">
+    <span class="eyebrow reveal">What we do</span>
+    <h2 class="reveal">Four practices. One end-to-end capability.</h2>
+    <p class="muted reveal" style="max-width:62ch">Most AI initiatives fail in the gaps — between the idea and the model, the model and the data, the data and the software. We work across all four layers so nothing falls through.</p>
+    <div class="practice-grid">
+      <div class="practice reveal">
+        <span class="k">Practice 01</span>
+        <h3>Artificial Intelligence</h3>
+        <p>Creating business value with AI — identifying the use cases that matter and bringing them to life, from feasibility to a working solution your teams actually use.</p>
+        <ul>
+          <li>AI opportunity &amp; use-case discovery</li>
+          <li>Solution design &amp; rapid prototyping</li>
+          <li>From proof-of-concept to production</li>
+        </ul>
+      </div>
+      <div class="practice reveal">
+        <span class="k">Practice 02</span>
+        <h3>Machine Learning</h3>
+        <p>Building and deploying models that earn their keep — trained on your data, validated against your metrics, and shipped into production with monitoring from day one.</p>
+        <ul>
+          <li>Model development &amp; evaluation</li>
+          <li>MLOps, deployment &amp; monitoring</li>
+          <li>Continuous improvement loops</li>
+        </ul>
+      </div>
+      <div class="practice reveal">
+        <span class="k">Practice 03</span>
+        <h3>Data</h3>
+        <p>Architecting the backend pipelines that every model and dashboard depends on — reliable, observable, and built to scale with your business.</p>
+        <ul>
+          <li>Data architecture &amp; pipeline design</li>
+          <li>Ingestion, transformation &amp; quality</li>
+          <li>Warehouses, lakes &amp; serving layers</li>
+        </ul>
+      </div>
+      <div class="practice reveal">
+        <span class="k">Practice 04</span>
+        <h3>Software for AI</h3>
+        <p>The engineering that makes AI dependable: data pipelines, databases, retrieval-augmented generation and the surrounding systems that turn models into products.</p>
+        <ul>
+          <li>RAG systems &amp; vector databases</li>
+          <li>AI application &amp; API engineering</li>
+          <li>Integration with your existing stack</li>
+        </ul>
+      </div>
     </div>
+  </div>
+</section>
 
-    <footer>
-        <p>&copy; 2026 MyBrand. All rights reserved.</p>
-    </footer>
+<!-- APPROACH -->
+<section id="approach">
+  <div class="wrap">
+    <span class="eyebrow reveal">How we work</span>
+    <h2 class="reveal">Small teams, senior hands, working systems.</h2>
+    <div class="approach-grid reveal">
+      <div class="phase">
+        <span class="num">01 / FRAME</span>
+        <h3>Find the value</h3>
+        <p>We start with the business problem, not the technology — and define what success looks like in numbers before writing a line of code.</p>
+      </div>
+      <div class="phase">
+        <span class="num">02 / BUILD</span>
+        <h3>Prove it fast</h3>
+        <p>Short, focused build cycles get a working system in front of you early, so direction is corrected in weeks rather than quarters.</p>
+      </div>
+      <div class="phase">
+        <span class="num">03 / RUN</span>
+        <h3>Make it stick</h3>
+        <p>We deploy to production, instrument everything, and hand over with documentation and training — so the value outlives the engagement.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <div class="wrap contact-inner">
+    <div class="reveal">
+      <span class="eyebrow">Contact</span>
+      <h2>Have a problem worth solving? Let's frame it together.</h2>
+      <p class="muted">Tell us where AI could move the needle in your business. We'll come back with an honest read on feasibility, the right approach, and what it would take.</p>
+    </div>
+    <div class="email-card reveal">
+      <span class="k">Write to us</span>
+      <a href="mailto:sandeep@intelleo.in">sandeep@intelleo.in</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© <span id="yr">2026</span> Intelleo. Deep tech consulting — AI, ML, Data &amp; Software for AI.</span>
+    <span class="mono">idea → model → production</span>
+  </div>
+</footer>
+
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+const obs = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target);} });
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
 </body>
 </html>
