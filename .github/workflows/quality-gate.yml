@@ -23,7 +23,7 @@ jobs:
       - run: npm ci
 
       - name: Unit tests
-        run: node --test scripts/__tests__/
+        run: node --test scripts/__tests__/*.test.mjs
 
       # Full run including live citation verification. This is the merge
       # gate: a fabricated or dead source URL fails the build here.

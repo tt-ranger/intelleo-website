@@ -11,7 +11,7 @@
     "gate": "node scripts/quality-gate.mjs",
     "plan": "node scripts/topic-planner.mjs",
     "stats": "node scripts/content-stats.mjs",
-    "test:gate": "node --test scripts/__tests__/"
+    "test:gate": "node --test scripts/__tests__/*.test.mjs"
   },
   "dependencies": {
     "@astrojs/partytown": "^2.1.4",
