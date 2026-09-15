@@ -24,6 +24,13 @@ echo "node $(node --version)  (CI uses $NODE_VERSION)"
 step() { printf '\n=== %s ===\n' "$1"; }
 
 step "install"
+# `npm ci` deletes node_modules wholesale. A running dev server holds file
+# handles in there and the delete fails halfway, leaving a broken install.
+if pgrep -f "[a]stro dev" >/dev/null 2>&1; then
+  echo "A dev server is running and npm ci would corrupt node_modules."
+  echo "Stop it first (Ctrl-C in its terminal), then re-run."
+  exit 1
+fi
 npm ci --no-audit --no-fund >/dev/null
 echo "ok"
 

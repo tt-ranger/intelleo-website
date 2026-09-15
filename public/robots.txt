@@ -3,6 +3,7 @@
 User-agent: *
 Allow: /
 Disallow: /review
+Disallow: /admin
 
 # --- AI answer engines -------------------------------------------------
 # Explicitly allowed: being cited by generative engines is a stated goal.
