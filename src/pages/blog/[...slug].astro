@@ -1,0 +1,167 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { SITE, AUTHOR, CLUSTERS } from '../../data/site';
+import { getPublished, getRelated, formatDate, readingTime } from '../../lib/content';
+import '../../styles/article.css';
+
+export async function getStaticPaths() {
+  const posts = await getPublished();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { data } = post;
+const { Content } = await render(post);
+const related = await getRelated(post);
+const url = new URL(`/blog/${post.id}`, SITE.url).href;
+const cluster = CLUSTERS[data.cluster];
+
+const schema: Record<string, unknown>[] = [
+  {
+    '@type': 'BlogPosting',
+    '@id': `${url}#article`,
+    headline: data.title,
+    description: data.description,
+    abstract: data.answer,
+    datePublished: data.publishDate.toISOString(),
+    dateModified: (data.updatedDate ?? data.publishDate).toISOString(),
+    inLanguage: 'en',
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    author: {
+      '@type': 'Person',
+      '@id': `${SITE.url}/#person-sandeep`,
+      name: AUTHOR.name,
+      jobTitle: AUTHOR.jobTitle,
+      email: AUTHOR.email,
+      worksFor: { '@id': `${SITE.url}/#organization` },
+    },
+    publisher: { '@id': `${SITE.url}/#organization` },
+    about: cluster.label,
+    keywords: data.tags.join(', '),
+    // Citations are a documented driver of generative-engine trust.
+    citation: data.sources.map((s) => ({
+      '@type': 'CreativeWork',
+      name: s.title,
+      url: s.url,
+      publisher: { '@type': 'Organization', name: s.publisher },
+      datePublished: s.date.toISOString().slice(0, 10),
+    })),
+  },
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Insights', item: `${SITE.url}/blog` },
+      { '@type': 'ListItem', position: 3, name: cluster.label, item: `${SITE.url}/topics/${data.cluster}` },
+      { '@type': 'ListItem', position: 4, name: data.title, item: url },
+    ],
+  },
+];
+
+if (data.faq.length > 0) {
+  schema.push({
+    '@type': 'FAQPage',
+    mainEntity: data.faq.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: { '@type': 'Answer', text: f.answer },
+    })),
+  });
+}
+---
+<Base
+  title={data.title}
+  description={data.description}
+  ogType="article"
+  schema={schema}
+>
+  <article class="article">
+    <div class="wrap article-inner">
+      <nav class="article-meta" aria-label="Breadcrumb">
+        <a href="/blog">Insights</a>
+        <span aria-hidden="true">/</span>
+        <a href={`/topics/${data.cluster}`}>{cluster.label}</a>
+      </nav>
+
+      <h1>{data.title}</h1>
+
+      <div class="article-meta">
+        <span class="badge">{cluster.label}</span>
+        {data.originalData && <span class="badge data">Original data</span>}
+        <time datetime={data.publishDate.toISOString()}>{formatDate(data.publishDate)}</time>
+        {data.updatedDate && <span>Updated {formatDate(data.updatedDate)}</span>}
+        <span>{readingTime(post.body ?? '')} min read</span>
+        <span>{AUTHOR.name}</span>
+      </div>
+
+      <div class="answer">
+        <span class="k">In short</span>
+        <p>{data.answer}</p>
+      </div>
+
+      {data.newsHook && (
+        <p class="muted" style="font-size:14px">
+          Prompted by: <a href={data.newsHook.url} rel="noopener">{data.newsHook.headline}</a>
+          <span class="mono"> · {formatDate(data.newsHook.date)}</span>
+        </p>
+      )}
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      {data.faq.length > 0 && (
+        <section class="block faq">
+          <h2>Frequently asked</h2>
+          {data.faq.map((f) => (
+            <details>
+              <summary>{f.question}</summary>
+              <p>{f.answer}</p>
+            </details>
+          ))}
+        </section>
+      )}
+
+      <section class="block">
+        <h2>Sources</h2>
+        <ul class="sources">
+          {data.sources.map((s) => (
+            <li>
+              <a href={s.url} rel="noopener nofollow">{s.title}</a>
+              <div class="pub">{s.publisher} · {formatDate(s.date)}</div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {related.length > 0 && (
+        <section class="block">
+          <h2>Related reading</h2>
+          <ul class="post-list" style="margin-top:0">
+            {related.map((r) => (
+              <li>
+                <a class="post-link" href={`/blog/${r.id}`}>
+                  <div class="row">
+                    <span>{CLUSTERS[r.data.cluster].label}</span>
+                    <span>{formatDate(r.data.publishDate)}</span>
+                  </div>
+                  <h2>{r.data.title}</h2>
+                  <p>{r.data.description}</p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section class="block">
+        <h2>Working on something like this?</h2>
+        <p class="muted">
+          Intelleo builds AI, ML and data systems that run in production.
+          Write to <a href="mailto:sandeep@intelleo.in">sandeep@intelleo.in</a>.
+        </p>
+      </section>
+    </div>
+  </article>
+</Base>

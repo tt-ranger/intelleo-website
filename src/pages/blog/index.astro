@@ -1,0 +1,44 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostList from '../../components/PostList.astro';
+import { getPublished } from '../../lib/content';
+import { SITE } from '../../data/site';
+import '../../styles/article.css';
+
+const PER_PAGE = 24;
+const all = await getPublished();
+const posts = all.slice(0, PER_PAGE);
+const hasNext = all.length > PER_PAGE;
+
+const schema = [{
+  '@type': 'Blog',
+  '@id': `${SITE.url}/blog#blog`,
+  name: 'Intelleo Insights',
+  url: `${SITE.url}/blog`,
+  publisher: { '@id': `${SITE.url}/#organization` },
+}];
+---
+<Base
+  title="Insights — AI, ML, Data & Software Engineering | Intelleo"
+  description="Practical writing on building AI systems that reach production: model evaluation, MLOps, data pipelines, RAG architecture and how generative engines retrieve sources."
+  schema={schema}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">Insights</span>
+      <h1>What we're working through.</h1>
+      <p>
+        Field notes from building AI, ML and data systems that run in production — plus how
+        generative engines actually retrieve and cite what they read.
+      </p>
+    </div>
+  </section>
+  <section style="padding-top:24px">
+    <div class="wrap">
+      <PostList posts={posts} />
+      {hasNext && (
+        <div class="pager"><a class="btn btn-ghost" href="/blog/page/2">Older articles →</a></div>
+      )}
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,193 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { SITE, CLUSTERS } from '../data/site';
+import '../styles/home.css';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishDate.valueOf() - a.data.publishDate.valueOf())
+  .slice(0, 3);
+
+const schema = [
+  {
+    '@type': 'ProfessionalService',
+    '@id': `${SITE.url}/#service`,
+    name: SITE.name,
+    url: SITE.url,
+    description: SITE.description,
+    email: SITE.email,
+    areaServed: ['IN', 'Worldwide'],
+    parentOrganization: { '@id': `${SITE.url}/#organization` },
+    knowsAbout: [
+      'Artificial Intelligence',
+      'Machine Learning',
+      'MLOps',
+      'Data Engineering',
+      'Retrieval-Augmented Generation',
+      'Vector Databases',
+    ],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Practices',
+      itemListElement: Object.entries(CLUSTERS)
+        .filter(([id]) => id !== 'geo')
+        .map(([, c]) => ({
+          '@type': 'Offer',
+          itemOffered: { '@type': 'Service', name: c.label, description: c.blurb },
+        })),
+    },
+  },
+];
+---
+<Base
+  title="Intelleo — Deep Tech Consulting · AI, ML, Data & Software for AI"
+  description={SITE.description}
+  schema={schema}
+>
+  <!-- HERO -->
+  <section class="hero">
+    <svg class="traces" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <path id="t1" d="M-20 120 H 420 L 470 170 H 760 L 810 120 H 1230" />
+      <path id="t2" d="M-20 300 H 300 L 350 250 H 660 L 710 300 H 1230" />
+      <path id="t3" d="M-20 460 H 520 L 570 410 H 900 L 950 460 H 1230" />
+      <use href="#t1" class="pulse" />
+      <use href="#t2" class="pulse s" />
+      <use href="#t3" class="pulse d2" />
+      <circle cx="470" cy="170" r="4" /><circle cx="810" cy="120" r="4" />
+      <circle cx="350" cy="250" r="4" /><circle cx="710" cy="300" r="4" />
+      <circle cx="570" cy="410" r="4" /><circle cx="950" cy="460" r="4" />
+    </svg>
+    <div class="wrap hero-inner">
+      <span class="eyebrow">Deep Tech Consulting</span>
+      <h1>Deep tech, delivered as <span class="glow">business value.</span></h1>
+      <p class="lede">
+        Intelleo helps you take AI from idea to impact — designing the use case, building the
+        models, architecting the data backbone, and engineering the software that holds it all
+        together in production.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="#contact">Talk to us</a>
+        <a class="btn btn-ghost" href="#practices">Explore our practices</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRACTICES -->
+  <section class="practices" id="practices">
+    <div class="wrap">
+      <span class="eyebrow reveal">What we do</span>
+      <h2 class="reveal">Four practices. One end-to-end capability.</h2>
+      <p class="muted reveal" style="max-width:62ch">
+        Most AI initiatives fail in the gaps — between the idea and the model, the model and the
+        data, the data and the software. We work across all four layers so nothing falls through.
+      </p>
+      <div class="practice-grid">
+        <div class="practice reveal">
+          <span class="k">Practice 01</span>
+          <h3>Artificial Intelligence</h3>
+          <p>Creating business value with AI — identifying the use cases that matter and bringing them to life, from feasibility to a working solution your teams actually use.</p>
+          <ul>
+            <li>AI opportunity &amp; use-case discovery</li>
+            <li>Solution design &amp; rapid prototyping</li>
+            <li>From proof-of-concept to production</li>
+          </ul>
+          <a class="more" href="/topics/ai">Read our AI writing →</a>
+        </div>
+        <div class="practice reveal">
+          <span class="k">Practice 02</span>
+          <h3>Machine Learning</h3>
+          <p>Building and deploying models that earn their keep — trained on your data, validated against your metrics, and shipped into production with monitoring from day one.</p>
+          <ul>
+            <li>Model development &amp; evaluation</li>
+            <li>MLOps, deployment &amp; monitoring</li>
+            <li>Continuous improvement loops</li>
+          </ul>
+          <a class="more" href="/topics/ml">Read our ML writing →</a>
+        </div>
+        <div class="practice reveal">
+          <span class="k">Practice 03</span>
+          <h3>Data</h3>
+          <p>Architecting the backend pipelines that every model and dashboard depends on — reliable, observable, and built to scale with your business.</p>
+          <ul>
+            <li>Data architecture &amp; pipeline design</li>
+            <li>Ingestion, transformation &amp; quality</li>
+            <li>Warehouses, lakes &amp; serving layers</li>
+          </ul>
+          <a class="more" href="/topics/data">Read our data writing →</a>
+        </div>
+        <div class="practice reveal">
+          <span class="k">Practice 04</span>
+          <h3>Software for AI</h3>
+          <p>The engineering that makes AI dependable: data pipelines, databases, retrieval-augmented generation and the surrounding systems that turn models into products.</p>
+          <ul>
+            <li>RAG systems &amp; vector databases</li>
+            <li>AI application &amp; API engineering</li>
+            <li>Integration with your existing stack</li>
+          </ul>
+          <a class="more" href="/topics/software-for-ai">Read our engineering writing →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APPROACH -->
+  <section id="approach">
+    <div class="wrap">
+      <span class="eyebrow reveal">How we work</span>
+      <h2 class="reveal">Small teams, senior hands, working systems.</h2>
+      <div class="approach-grid reveal">
+        <div class="phase">
+          <span class="num">01 / FRAME</span>
+          <h3>Find the value</h3>
+          <p>We start with the business problem, not the technology — and define what success looks like in numbers before writing a line of code.</p>
+        </div>
+        <div class="phase">
+          <span class="num">02 / BUILD</span>
+          <h3>Prove it fast</h3>
+          <p>Short, focused build cycles get a working system in front of you early, so direction is corrected in weeks rather than quarters.</p>
+        </div>
+        <div class="phase">
+          <span class="num">03 / RUN</span>
+          <h3>Make it stick</h3>
+          <p>We deploy to production, instrument everything, and hand over with documentation and training — so the value outlives the engagement.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {posts.length > 0 && (
+    <section class="practices" id="insights">
+      <div class="wrap">
+        <span class="eyebrow reveal">Insights</span>
+        <h2 class="reveal">What we're working through.</h2>
+        <div class="latest-grid">
+          {posts.map((p) => (
+            <a class="latest-card reveal" href={`/blog/${p.id}`}>
+              <span class="k">{CLUSTERS[p.data.cluster].label}</span>
+              <h3>{p.data.title}</h3>
+              <p>{p.data.description}</p>
+            </a>
+          ))}
+        </div>
+        <p style="margin-top:32px">
+          <a class="btn btn-ghost" href="/blog">All insights</a>
+        </p>
+      </div>
+    </section>
+  )}
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="wrap contact-inner">
+      <div class="reveal">
+        <span class="eyebrow">Contact</span>
+        <h2>Have a problem worth solving? Let's frame it together.</h2>
+        <p class="muted">Tell us where AI could move the needle in your business. We'll come back with an honest read on feasibility, the right approach, and what it would take.</p>
+      </div>
+      <div class="email-card reveal">
+        <span class="k">Write to us</span>
+        <a href="mailto:sandeep@intelleo.in">sandeep@intelleo.in</a>
+      </div>
+    </div>
+  </section>
+</Base>

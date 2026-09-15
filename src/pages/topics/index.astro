@@ -1,0 +1,45 @@
+---
+import Base from '../../layouts/Base.astro';
+import { SITE, CLUSTERS, CLUSTER_IDS } from '../../data/site';
+import { getPublished } from '../../lib/content';
+import '../../styles/article.css';
+
+const posts = await getPublished();
+const counts = Object.fromEntries(
+  CLUSTER_IDS.map((id) => [id, posts.filter((p) => p.data.cluster === id).length]),
+);
+
+const schema = [{
+  '@type': 'CollectionPage',
+  '@id': `${SITE.url}/topics#collection`,
+  name: 'Topics — Intelleo',
+  url: `${SITE.url}/topics`,
+  isPartOf: { '@id': `${SITE.url}/#website` },
+}];
+---
+<Base
+  title="Topics — AI, ML, Data, Software for AI | Intelleo"
+  description="Intelleo's writing organised into topic clusters: artificial intelligence, machine learning, data engineering, software for AI, and generative engine optimization."
+  schema={schema}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">Topics</span>
+      <h1>Five clusters.</h1>
+      <p>Everything we publish sits in one of these. Each hub collects its articles by subject.</p>
+    </div>
+  </section>
+  <section style="padding-top:32px">
+    <div class="wrap">
+      <div class="hub-grid">
+        {CLUSTER_IDS.map((id) => (
+          <a class="hub-card" href={`/topics/${id}`}>
+            <span class="count">{counts[id]} article{counts[id] === 1 ? '' : 's'}</span>
+            <h3>{CLUSTERS[id].label}</h3>
+            <p>{CLUSTERS[id].blurb}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>

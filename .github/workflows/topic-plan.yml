@@ -1,0 +1,49 @@
+name: Topic plan
+
+# Emits the day's briefs as an issue for the writing agent to pick up.
+# Runs before the publishing window so briefs are fresh.
+on:
+  schedule:
+    - cron: '30 1 * * *'   # 07:00 IST
+  workflow_dispatch:
+    inputs:
+      count:
+        description: Number of briefs
+        default: '4'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Generate briefs
+        run: |
+          node scripts/topic-planner.mjs --count "${{ inputs.count || 4 }}" > briefs.txt
+          node scripts/topic-planner.mjs --count "${{ inputs.count || 4 }}" --json > briefs.json
+          cat briefs.txt
+
+      - name: Open brief issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = '```\n' + fs.readFileSync('briefs.txt', 'utf8') + '\n```\n\n'
+              + '<details><summary>JSON</summary>\n\n```json\n'
+              + fs.readFileSync('briefs.json', 'utf8') + '\n```\n</details>';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Topic briefs — ${new Date().toISOString().slice(0, 10)}`,
+              body,
+              labels: ['content-brief'],
+            });

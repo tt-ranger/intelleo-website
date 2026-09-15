@@ -1,0 +1,65 @@
+# Subject registry — the subject-matter axis of the publishing plan.
+#
+# Rules enforced by scripts/balance-check.mjs and the quality gate:
+#   * an article's `subject` MUST appear here, or the build fails
+#   * no subject may exceed its `cap` (default 10)
+#   * no cluster may exceed maxClusterShare of total published articles
+#
+# When subjects approach cap the /review dashboard warns you. Add new
+# subjects here rather than letting the planner stall — running out of
+# headroom is the expected throttle on sustained output, not a bug.
+
+defaults:
+  cap: 10
+
+balance:
+  maxClusterShare: 0.35     # no single cluster above 35% of published output
+  minNewsHookShare: 0.40    # at least 40% of articles tied to a recent news item
+  newsHookMaxAgeDays: 30
+  maxPerDay: 4
+
+clusters:
+  ai:
+    subjects:
+      - id: use-case-discovery
+      - id: feasibility-assessment
+      - id: ai-roi-measurement
+      - id: prototype-to-production
+      - id: ai-governance
+      - id: build-vs-buy
+
+  ml:
+    subjects:
+      - id: model-evaluation
+      - id: mlops-deployment
+      - id: drift-monitoring
+      - id: feature-engineering
+      - id: training-infrastructure
+      - id: model-selection
+
+  data:
+    subjects:
+      - id: pipeline-architecture
+      - id: data-quality
+      - id: warehouse-design
+      - id: ingestion-patterns
+      - id: streaming-vs-batch
+      - id: data-observability
+
+  software-for-ai:
+    subjects:
+      - id: rag-systems
+      - id: vector-databases
+      - id: llm-api-engineering
+      - id: agent-architectures
+      - id: context-engineering
+      - id: inference-optimization
+
+  geo:
+    subjects:
+      - id: llm-citation-behavior
+      - id: retrieval-ranking
+      - id: structured-data-for-llms
+      - id: ai-crawler-behavior
+      - id: answer-engine-evaluation
+      - id: entity-authority

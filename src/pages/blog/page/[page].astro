@@ -1,0 +1,36 @@
+---
+import type { GetStaticPaths, Page } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import PostList from '../../../components/PostList.astro';
+import { getPublished, type Post } from '../../../lib/content';
+import '../../../styles/article.css';
+
+export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
+  const posts = await getPublished();
+  // Page 1 lives at /blog; this route serves 2..n.
+  return paginate(posts, { pageSize: 24 });
+};
+
+const { page } = Astro.props as { page: Page<Post> };
+---
+<Base
+  title={`Insights — page ${page.currentPage} | Intelleo`}
+  description="Archive of Intelleo writing on AI, ML, data engineering and generative engine behaviour."
+  noindex={page.currentPage === 1}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">Insights · page {page.currentPage} of {page.lastPage}</span>
+      <h1>Archive</h1>
+    </div>
+  </section>
+  <section style="padding-top:24px">
+    <div class="wrap">
+      <PostList posts={page.data} />
+      <div class="pager">
+        {page.url.prev && <a class="btn btn-ghost" href={page.url.prev === '/blog/page/1' ? '/blog' : page.url.prev}>← Newer</a>}
+        {page.url.next && <a class="btn btn-ghost" href={page.url.next}>Older →</a>}
+      </div>
+    </div>
+  </section>
+</Base>
