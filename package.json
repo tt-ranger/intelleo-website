@@ -1,0 +1,24 @@
+{
+  "name": "intelleo-website",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "gate": "node scripts/quality-gate.mjs",
+    "plan": "node scripts/topic-planner.mjs",
+    "stats": "node scripts/content-stats.mjs",
+    "test:gate": "node --test scripts/__tests__/*.test.mjs",
+    "ci": "bash scripts/ci-local.sh"
+  },
+  "dependencies": {
+    "@astrojs/partytown": "^2.1.4",
+    "@astrojs/rss": "^4.0.11",
+    "@astrojs/sitemap": "^3.2.1",
+    "astro": "^5.1.1",
+    "yaml": "^2.7.0"
+  }
+}

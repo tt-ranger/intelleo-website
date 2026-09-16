@@ -1,0 +1,110 @@
+---
+/**
+ * GA4 with Consent Mode v2 and a minimal consent banner.
+ *
+ * Renders nothing at all when PUBLIC_GA4_ID is unset, so local dev and
+ * previews stay clean and the site works before analytics is provisioned.
+ *
+ * NOTE — deviation from plan: the plan specified loading gtag through
+ * Partytown. Partytown proxies gtag into a web worker, which is known to
+ * interfere with Consent Mode v2 consent updates. Since GDPR correctness
+ * is a hard requirement (Europe is a target market) and the Lighthouse
+ * cost of an async gtag is small, gtag is loaded normally here.
+ */
+const GA4_ID = import.meta.env.PUBLIC_GA4_ID;
+---
+{GA4_ID && (
+  <>
+    <script define:vars={{ GA4_ID }} is:inline>
+      // Consent Mode v2: deny everything until the visitor opts in.
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { window.dataLayer.push(arguments); }
+      window.gtag = gtag;
+
+      gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: 'denied',
+        wait_for_update: 500,
+      });
+
+      var STORAGE_KEY = 'intelleo-consent';
+      var stored = null;
+      try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) { /* private mode */ }
+
+      if (stored === 'granted') {
+        gtag('consent', 'update', {
+          ad_storage: 'granted',
+          ad_user_data: 'granted',
+          ad_personalization: 'granted',
+          analytics_storage: 'granted',
+        });
+      }
+
+      gtag('js', new Date());
+      gtag('config', GA4_ID, { anonymize_ip: true });
+
+      // Load the tag only once a decision exists; denied still loads so that
+      // cookieless pings work, which Consent Mode expects.
+      (function loadTag() {
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA4_ID;
+        document.head.appendChild(s);
+      })();
+
+      // Lead conversion: the mailto CTA is the site's only conversion point.
+      document.addEventListener('click', function (e) {
+        var a = e.target && e.target.closest && e.target.closest('a[href^="mailto:"]');
+        if (a) gtag('event', 'contact_email_click', { link_url: a.getAttribute('href') });
+      });
+
+      // Consent banner, shown only when no decision is stored.
+      if (stored !== 'granted' && stored !== 'denied') {
+        document.addEventListener('DOMContentLoaded', function () {
+          var bar = document.createElement('div');
+          bar.className = 'consent-bar';
+          bar.setAttribute('role', 'dialog');
+          bar.setAttribute('aria-label', 'Cookie consent');
+          bar.innerHTML =
+            '<p>We use Google Analytics to understand what people read here. ' +
+            'Analytics cookies are off until you accept.</p>' +
+            '<div class="consent-actions">' +
+            '<button type="button" data-consent="denied" class="consent-btn ghost">Decline</button>' +
+            '<button type="button" data-consent="granted" class="consent-btn">Accept</button>' +
+            '</div>';
+          document.body.appendChild(bar);
+
+          bar.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-consent]');
+            if (!btn) return;
+            var choice = btn.getAttribute('data-consent');
+            try { localStorage.setItem(STORAGE_KEY, choice); } catch (err) { /* ignore */ }
+            if (choice === 'granted') {
+              gtag('consent', 'update', {
+                ad_storage: 'granted',
+                ad_user_data: 'granted',
+                ad_personalization: 'granted',
+                analytics_storage: 'granted',
+              });
+            }
+            bar.remove();
+          });
+        });
+      }
+    </script>
+    <style is:inline>
+      .consent-bar{position:fixed;bottom:16px;left:16px;right:16px;max-width:560px;margin:0 auto;z-index:200;
+        background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;
+        display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between;
+        box-shadow:0 12px 40px rgba(0,0,0,.45)}
+      .consent-bar p{font-size:13.5px;color:var(--muted);flex:1 1 260px;margin:0}
+      .consent-actions{display:flex;gap:10px}
+      .consent-btn{font-family:var(--mono);font-size:13px;padding:9px 18px;border-radius:6px;cursor:pointer;
+        background:var(--copper);color:#16100A;border:1px solid var(--copper)}
+      .consent-btn.ghost{background:transparent;color:var(--text);border-color:var(--line)}
+      .consent-btn.ghost:hover{border-color:var(--copper)}
+    </style>
+  </>
+)}

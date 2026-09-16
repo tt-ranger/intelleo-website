@@ -1,0 +1,14 @@
+---
+import { CLUSTERS, CLUSTER_IDS } from '../data/site';
+const year = new Date().getFullYear();
+---
+<footer>
+  <div class="wrap foot">
+    <span>© {year} Intelleo. Deep tech consulting — AI, ML, Data &amp; Software for AI.</span>
+    <nav class="foot-links" aria-label="Topics">
+      {CLUSTER_IDS.map((id) => <a href={`/topics/${id}`}>{CLUSTERS[id].label}</a>)}
+      <a href="/blog">Insights</a>
+    </nav>
+    <span class="mono">idea → model → production</span>
+  </div>
+</footer>

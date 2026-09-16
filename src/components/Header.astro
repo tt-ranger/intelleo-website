@@ -1,0 +1,17 @@
+---
+const { pathname } = Astro.url;
+const isHome = pathname === '/' || pathname === '';
+// Section anchors only resolve on the homepage; prefix them when elsewhere.
+const anchor = (hash: string) => (isHome ? hash : `/${hash}`);
+---
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="/"><span class="node" aria-hidden="true"></span>Intelleo</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href={anchor('#practices')}>What we do</a>
+      <a href={anchor('#approach')}>How we work</a>
+      <a href="/blog">Insights</a>
+    </nav>
+    <a class="nav-cta" href={anchor('#contact')}>Start a conversation</a>
+  </div>
+</header>

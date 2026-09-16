@@ -1,0 +1,27 @@
+# Free RSS sources for the recency axis of topic planning.
+# No API keys, no paid tiers. Add or remove freely.
+feeds:
+  - url: http://export.arxiv.org/rss/cs.AI
+    publisher: arXiv cs.AI
+    clusters: [ai, ml]
+  - url: http://export.arxiv.org/rss/cs.LG
+    publisher: arXiv cs.LG
+    clusters: [ml]
+  - url: http://export.arxiv.org/rss/cs.IR
+    publisher: arXiv cs.IR
+    clusters: [software-for-ai, geo]
+  - url: http://export.arxiv.org/rss/cs.DB
+    publisher: arXiv cs.DB
+    clusters: [data]
+  - url: https://hnrss.org/frontpage?points=150
+    publisher: Hacker News
+    clusters: [ai, ml, data, software-for-ai, geo]
+  - url: https://openai.com/blog/rss.xml
+    publisher: OpenAI
+    clusters: [ai, software-for-ai]
+  - url: https://huggingface.co/blog/feed.xml
+    publisher: Hugging Face
+    clusters: [ml, software-for-ai]
+  - url: https://developers.googleblog.com/feeds/posts/default
+    publisher: Google Developers
+    clusters: [ai, geo]

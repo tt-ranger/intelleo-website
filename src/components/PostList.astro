@@ -1,0 +1,28 @@
+---
+import { CLUSTERS } from '../data/site';
+import { formatDate } from '../lib/content';
+import type { Post } from '../lib/content';
+
+interface Props { posts: Post[] }
+const { posts } = Astro.props;
+---
+{posts.length === 0 ? (
+  <p class="muted" style="margin-top:40px">No articles published yet.</p>
+) : (
+  <ul class="post-list">
+    {posts.map((p) => (
+      <li>
+        <a class="post-link" href={`/blog/${p.id}`}>
+          <div class="row">
+            <span>{CLUSTERS[p.data.cluster].label}</span>
+            <span aria-hidden="true">·</span>
+            <time datetime={p.data.publishDate.toISOString()}>{formatDate(p.data.publishDate)}</time>
+            {p.data.originalData && <><span aria-hidden="true">·</span><span style="color:var(--copper-bright)">Original data</span></>}
+          </div>
+          <h2>{p.data.title}</h2>
+          <p>{p.data.description}</p>
+        </a>
+      </li>
+    ))}
+  </ul>
+)}

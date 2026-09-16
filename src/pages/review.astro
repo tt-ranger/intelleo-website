@@ -1,0 +1,207 @@
+---
+import Base from '../layouts/Base.astro';
+import { CLUSTERS, CLUSTER_IDS } from '../data/site';
+import { buildStats } from '../lib/stats';
+import '../styles/article.css';
+
+const s = await buildStats();
+const pct = (n: number) => `${Math.round(n * 100)}%`;
+const label = (x: string) => x.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const subjectIds = [...new Set(s.subjects.map((x) => x.id))];
+---
+<Base
+  title="Editorial review — Intelleo"
+  description="Internal dashboard: published articles, subject quotas and cluster balance."
+  noindex
+>
+  <section class="rv">
+    <div class="wrap">
+      <span class="eyebrow">Internal</span>
+      <h1 style="font-size:34px;margin-bottom:10px">Editorial review</h1>
+      <p class="muted" style="margin-bottom:38px">
+        Not indexed and excluded from the sitemap, but reachable by anyone with the URL —
+        GitHub Pages cannot authenticate. Nothing here is private: it lists published articles only.
+      </p>
+
+      <div class="rv-stats">
+        <div class="rv-stat"><span class="n">{s.total}</span><span class="l">Published</span></div>
+        <div class="rv-stat"><span class="n">{s.last30}</span><span class="l">Last 30 days</span></div>
+        <div class="rv-stat"><span class="n">{s.avgWords}</span><span class="l">Avg words</span></div>
+        <div class={`rv-stat${s.total >= 10 && s.newsHookShare < s.minNewsHookShare ? ' warn' : ''}`}>
+          <span class="n">{pct(s.newsHookShare)}</span><span class="l">News-hooked (target {pct(s.minNewsHookShare)})</span>
+        </div>
+        <div class="rv-stat"><span class="n">{s.originalDataCount}</span><span class="l">With original data</span></div>
+        <div class={`rv-stat${s.subjectsAtCap ? ' warn' : ''}`}>
+          <span class="n">{s.subjectsAtCap}</span><span class="l">Subjects at cap</span>
+        </div>
+        <div class={`rv-stat${s.subjectsNearCap ? ' warn' : ''}`}>
+          <span class="n">{s.subjectsNearCap}</span><span class="l">Subjects near cap</span>
+        </div>
+        <div class={`rv-stat${s.headroom < 30 ? ' warn' : ''}`}>
+          <span class="n">{s.headroom}</span><span class="l">Articles of headroom</span>
+        </div>
+        <div class={`rv-stat${s.staleCount ? ' warn' : ''}`}>
+          <span class="n">{s.staleCount}</span><span class="l">Stale (6m+)</span>
+        </div>
+        <div class={`rv-stat${s.rejected.length ? ' warn' : ''}`}>
+          <span class="n">{s.rejected.length}</span><span class="l">Rejected drafts</span>
+        </div>
+      </div>
+
+      <div class="rv-bars">
+        <h2>Cluster balance</h2>
+        {s.clusterShare.length === 0 && <p class="muted" style="font-size:13px">Nothing published yet.</p>}
+        {s.clusterShare.map((c) => (
+          <div class="bar-row">
+            <span class="name">{CLUSTERS[c.id as keyof typeof CLUSTERS]?.label ?? c.id}</span>
+            <span class={`bar${c.share > 0.35 ? ' full' : c.share > 0.3 ? ' near' : ''}`}>
+              <span style={`width:${Math.min(100, c.share * 100)}%`}></span>
+            </span>
+            <span class="val">{c.count} · {pct(c.share)}</span>
+          </div>
+        ))}
+        {s.clustersOverShare.length > 0 && (
+          <p style="margin-top:14px;font-size:13px;color:var(--copper-bright)">
+            Over the 35% ceiling: {s.clustersOverShare.map((c) => c.id).join(', ')} — the planner will down-weight these.
+          </p>
+        )}
+      </div>
+
+      <div class="rv-bars">
+        <h2>Subject quotas</h2>
+        {s.subjects.map((x) => (
+          <div class="bar-row">
+            <span class="name" title={x.id}>{label(x.id)}</span>
+            <span class={`bar ${x.state === 'full' ? 'full' : x.state === 'near' ? 'near' : ''}`}>
+              <span style={`width:${Math.min(100, (x.count / x.cap) * 100)}%`}></span>
+            </span>
+            <span class="val">{x.count}/{x.cap}</span>
+          </div>
+        ))}
+        <p style="margin-top:14px;font-size:13px;color:var(--muted)">
+          Total remaining headroom: <strong>{s.headroom}</strong> articles. Add subjects to
+          <code>src/data/subjects.yaml</code> before this runs out.
+        </p>
+      </div>
+
+      {s.rejected.length > 0 && (
+        <div class="rv-bars">
+          <h2>Rejected by the gate</h2>
+          {s.rejected.map((r) => (
+            <details style="margin-bottom:8px">
+              <summary style="font-family:var(--mono);font-size:13px">{r.slug}</summary>
+              <ul style="margin-top:10px;font-size:13px;color:var(--muted);padding-left:18px">
+                {r.reasons.map((x) => <li>{x}</li>)}
+              </ul>
+            </details>
+          ))}
+        </div>
+      )}
+
+      <div class="rv-filters">
+        <label for="f-cluster">Cluster</label>
+        <select id="f-cluster">
+          <option value="">All</option>
+          {CLUSTER_IDS.map((id) => <option value={id}>{CLUSTERS[id].label}</option>)}
+        </select>
+        <label for="f-subject">Subject</label>
+        <select id="f-subject">
+          <option value="">All</option>
+          {subjectIds.map((id) => <option value={id}>{label(id)}</option>)}
+        </select>
+        <label for="f-from">From</label>
+        <input type="date" id="f-from" />
+        <label for="f-to">To</label>
+        <input type="date" id="f-to" />
+        <label><input type="checkbox" id="f-news" /> News-hooked</label>
+        <label><input type="checkbox" id="f-data" /> Original data</label>
+        <label><input type="checkbox" id="f-stale" /> Stale only</label>
+        <span id="f-count" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></span>
+      </div>
+
+      <table class="rv-table" id="rv-table">
+        <thead>
+          <tr>
+            <th data-sort="title">Title</th>
+            <th data-sort="cluster">Cluster</th>
+            <th data-sort="subject">Subject</th>
+            <th data-sort="publishDate">Published</th>
+            <th data-sort="updatedDate">Updated</th>
+            <th data-sort="words">Words</th>
+            <th data-sort="sources">Src</th>
+            <th data-sort="internalLinks">Links</th>
+            <th data-sort="newsHook">News</th>
+            <th data-sort="originalData">Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {s.rows.map((r) => (
+            <tr
+              data-cluster={r.cluster} data-subject={r.subject} data-date={r.publishDate}
+              data-news={String(r.newsHook)} data-data={String(r.originalData)} data-stale={String(r.stale)}
+            >
+              <td><a href={`/blog/${r.slug}`}>{r.title}</a></td>
+              <td>{CLUSTERS[r.cluster as keyof typeof CLUSTERS]?.label ?? r.cluster}</td>
+              <td>{label(r.subject)}</td>
+              <td class={r.stale ? 'stale' : ''}>{r.publishDate}</td>
+              <td>{r.updatedDate || '—'}</td>
+              <td>{r.words}</td>
+              <td>{r.sources}</td>
+              <td>{r.internalLinks}</td>
+              <td class="flag">{r.newsHook ? '●' : ''}</td>
+              <td class="flag">{r.originalData ? '●' : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {s.rows.length === 0 && <p class="rv-empty">No articles published yet.</p>}
+    </div>
+  </section>
+
+  <script is:inline>
+    (function () {
+      var table = document.getElementById('rv-table');
+      if (!table) return;
+      var tbody = table.querySelector('tbody');
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      var el = function (id) { return document.getElementById(id); };
+      var controls = ['f-cluster','f-subject','f-from','f-to','f-news','f-data','f-stale'].map(el);
+
+      function apply() {
+        var cluster = el('f-cluster').value, subject = el('f-subject').value;
+        var from = el('f-from').value, to = el('f-to').value;
+        var news = el('f-news').checked, data = el('f-data').checked, stale = el('f-stale').checked;
+        var shown = 0;
+        rows.forEach(function (r) {
+          var d = r.dataset.date;
+          var ok = (!cluster || r.dataset.cluster === cluster)
+            && (!subject || r.dataset.subject === subject)
+            && (!from || d >= from) && (!to || d <= to)
+            && (!news || r.dataset.news === 'true')
+            && (!data || r.dataset.data === 'true')
+            && (!stale || r.dataset.stale === 'true');
+          r.hidden = !ok;
+          if (ok) shown++;
+        });
+        el('f-count').textContent = shown + ' of ' + rows.length;
+      }
+      controls.forEach(function (c) { c.addEventListener('input', apply); });
+
+      var dir = {};
+      table.querySelectorAll('th[data-sort]').forEach(function (th, i) {
+        th.addEventListener('click', function () {
+          var key = th.dataset.sort;
+          dir[key] = !dir[key];
+          var sorted = rows.slice().sort(function (a, b) {
+            var av = a.children[i].textContent.trim(), bv = b.children[i].textContent.trim();
+            var an = parseFloat(av), bn = parseFloat(bv);
+            var cmp = (!isNaN(an) && !isNaN(bn)) ? an - bn : av.localeCompare(bv);
+            return dir[key] ? cmp : -cmp;
+          });
+          sorted.forEach(function (r) { tbody.appendChild(r); });
+        });
+      });
+      apply();
+    })();
+  </script>
+</Base>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Intelleo — Content admin</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root { color-scheme: dark light; }
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    #nojs { padding: 40px; max-width: 60ch; margin: 0 auto; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <noscript><div id="nojs"><h1>JavaScript required</h1><p>The content admin is a client-side application.</p></div></noscript>
+
+  <!--
+    Sveltia CMS — a Git-based editor. It reads and writes the Markdown files in
+    src/content/blog via the GitHub API.
+
+    Config is generated at /admin/config.yml from src/data/subjects.yaml, so the
+    subject dropdown always matches the content schema.
+
+    publish_mode is editorial_workflow, meaning Save opens a pull request rather
+    than committing to main. That is deliberate: it routes anything written here
+    through the same quality gate as the writing agent, including live citation
+    verification.
+  -->
+  <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js" type="module"></script>
+</body>
+</html>
