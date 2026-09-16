@@ -1,0 +1,4 @@
+OAuth Github app
+---
+client_id: Ov23liia6cRv9XfGApvH
+client_secret: fc491f208edc38f0f33df9d428dff489488edd76
