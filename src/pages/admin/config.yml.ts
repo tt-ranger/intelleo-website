@@ -35,7 +35,7 @@ export async function GET(_context: APIContext) {
       branch: 'main',
       // OAuth proxy. GitHub Pages cannot hold the client secret, so token
       // exchange happens in a free Cloudflare Worker. See README.
-      base_url: import.meta.env.PUBLIC_CMS_AUTH_URL || 'https://REPLACE-ME.workers.dev',
+      base_url: import.meta.env.PUBLIC_CMS_AUTH_URL || 'https://intelleo-cms-auth.sandeep-sudheendra.workers.dev',
     },
 
     // Saves open a pull request instead of committing to main, so everything
