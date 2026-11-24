@@ -73,6 +73,10 @@ const blog = defineCollection({
       originalData: z.boolean().default(false),
       draft: z.boolean().default(false),
       format: z.enum(['news', 'analysis', 'explainer']).optional(),
+      // Structural template, recorded so the planner can vary it. Mirrors SHAPES in scripts/publishing/shapes.mjs.
+      shape: z.enum([
+        'what-changed', 'comparison', 'decision-guide', 'myth-vs-evidence', 'playbook', 'how-it-works', 'field-guide',
+      ]).optional(),
       automated: z.boolean().default(false),
       eventId: z.string().min(1).optional(),
       hero: z.object({

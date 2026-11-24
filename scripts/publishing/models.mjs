@@ -18,6 +18,9 @@ export const object = (properties) => ({ type: 'object', properties, required: O
 
 export class BudgetExhausted extends Error {}
 
+// A 512px image costs a few hundred input tokens; this bound is deliberately generous.
+const IMAGE_TOKEN_ALLOWANCE = 3000;
+
 const validator = new Ajv({ allErrors: false });
 const validators = new Map();
 
@@ -44,21 +47,31 @@ export function modelClient(db, { env = process.env, fetchImpl = fetch, reserve 
   const adjustment = Number(env.LITELLM_PRICE_MULTIPLIER ?? '1.15');
   if (!Number.isFinite(adjustment) || adjustment < 1) throw new Error('Invalid LiteLLM reservation multiplier.');
 
-  return async function run({ model, name, schema, instructions, data, maxOutput }) {
+  return async function run({ model, name, schema, instructions, data, maxOutput, images = [] }) {
     const rates = STANDARD[model];
     if (!rates) throw new Error('Model is outside the editorial allowlist.');
+    if (images.length > 2 || images.some((url) => !/^data:image\/(jpeg|png|webp);base64,/.test(url) || url.length > 400000)) {
+      throw new Error('Images must be at most two small inline data URLs.');
+    }
+    // Images go alongside the JSON data as Responses API input parts.
+    const input = images.length
+      ? [{ role: 'user', content: [{ type: 'input_text', text: JSON.stringify(data) },
+        ...images.map((image_url) => ({ type: 'input_image', image_url }))] }]
+      : JSON.stringify(data);
     const payload = {
       model,
       service_tier: 'default',
       instructions,
-      input: JSON.stringify(data),
+      input,
       text: { format: { type: 'json_schema', name, strict: true, schema } },
       reasoning: { effort: 'low' },
       max_output_tokens: maxOutput,
       store: false,
     };
     const body = JSON.stringify(payload);
-    const bytes = Buffer.byteLength(body, 'utf8');
+    const imageBytes = images.reduce((sum, url) => sum + url.length, 0);
+    // Image bytes are not text tokens; each image is budgeted as a fixed token allowance instead.
+    const bytes = Buffer.byteLength(body, 'utf8') - imageBytes + images.length * IMAGE_TOKEN_ALLOWANCE;
     if (bytes > 100000 || !Number.isInteger(maxOutput) || maxOutput < 128 || maxOutput > 12000) {
       throw new Error('Structured request is outside editorial token limits.');
     }

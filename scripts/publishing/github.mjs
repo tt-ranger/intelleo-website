@@ -1,20 +1,22 @@
 import { load } from 'cheerio';
 import { installationToken, githubHeaders } from './github-auth.mjs';
 import { parseArticleText } from '../lib/articles.mjs';
-import { hash } from './store.mjs';
+import { digestOf, figureSrc } from './article.mjs';
 
 const REQUIRED_CHECK = 'content-quality';
 const BASE = 'main';
 
 export function artifactPaths(artifact) {
-  const { slug, markdown, hero, image, digest } = artifact;
+  const { slug, markdown, hero, image, digest, figures = [] } = artifact;
   if (!/^[a-z0-9-]{10,80}$/.test(slug) || hero?.src !== `/images/editorial/${slug}.webp`
-    || hash(markdown + image) !== digest || !artifact.facts?.pass || !artifact.editorial?.pass) {
+    || figures.some(({ src }, index) => src !== figureSrc(slug, index + 1))
+    || digestOf(artifact) !== digest || !artifact.facts?.pass || !artifact.editorial?.pass) {
     throw new Error('Draft lacks an intact fact-check and editorial verdict.');
   }
   return [
     [`src/content/blog/${slug}.md`, Buffer.from(markdown, 'utf8').toString('base64')],
     [`public${hero.src}`, image],
+    ...figures.map(({ src, image: data }) => [`public${src}`, data]),
   ];
 }
 

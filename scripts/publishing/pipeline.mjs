@@ -11,6 +11,7 @@ import { expireSources, withLease, transaction } from './store.mjs';
 import { BudgetExhausted } from './models.mjs';
 import { findCorrection } from './corrections.mjs';
 import { attachExperience, EXPERIENCE_KIND } from './experience.mjs';
+import { illustrationClient } from './illustration.mjs';
 
 const TIMEZONE = 'Asia/Kolkata';
 // One article a day. A new domain earns trust through depth, not volume, and
@@ -119,8 +120,10 @@ async function revalidateReserve(db, run, context, forbidden) {
     const article = parseArticleText(artifact.markdown, artifact.slug);
     const brief = await refreshBriefSources(artifact.evidence.brief, context.now);
     if (!brief) continue;
+    // Drafts from before figures existed cannot be re-verified; let them expire.
+    if (!artifact.evidence.figures) continue;
     const draft = { title: article.data.title, description: article.data.description, answer: article.data.answer,
-      body: article.body, claims: artifact.evidence.claims, visual: artifact.evidence.visual };
+      body: article.body, claims: artifact.evidence.claims, figures: artifact.evidence.figures };
     try { verifyEvidence(draft, brief.sources); } catch { continue; }
     if (runPureChecks(article, articleContext(context.corpus, context.registry, context.now)).some(({ level }) => level === 'error')) continue;
     const facts = await verifyFactually(run, draft, brief);
@@ -129,7 +132,7 @@ async function revalidateReserve(db, run, context, forbidden) {
   return null;
 }
 
-async function prepare(db, run, slot, definition, now) {
+async function prepare(db, run, slot, definition, now, illustrate) {
   let sourceRows = await scoredSources(db);
   if (sourceRows.length < 6) {
     await scoreSources(db, run);
@@ -145,7 +148,7 @@ async function prepare(db, run, slot, definition, now) {
   for (const brief of briefs) {
     const current = await refreshBriefSources(brief, now);
     if (!current) continue;
-    const artifact = await produceDraft(run, current, context);
+    const artifact = await produceDraft(run, current, { ...context, illustrate });
     if (!artifact) continue;
     try {
       if (slot.mode === 'shadow') await stageArticle(artifact);
@@ -176,7 +179,7 @@ async function refresh(db, run, now, env) {
   await expireSources(db);
 }
 
-async function refillReserve(db, run, now) {
+async function refillReserve(db, run, now, illustrate) {
   const day = editorialDay(now);
   const hour = localClock(now).hour;
   if (hour < 20) return;
@@ -192,7 +195,7 @@ async function refillReserve(db, run, now) {
     const briefs = await planCandidates(run, { sources, corpus, registry, formats: ['explainer'], excludedEvents: rows.map(({ id }) => id), now });
     if (briefs.length) {
       const current = await refreshBriefSources(briefs[0], now);
-      const draft = current ? await produceDraft(run, current, { corpus, registry, now }) : null;
+      const draft = current ? await produceDraft(run, current, { corpus, registry, now, illustrate }) : null;
       if (draft) await db.query('insert into editorial.reserve (id, cluster, draft) values ($1,$2,$3) on conflict do nothing',
         [draft.eventId, draft.cluster, draft]);
     }
@@ -306,6 +309,7 @@ export async function tick(db, run, { now = Date.now(), env = process.env } = {}
     if (mode === 'live') await github.requireProtection();
     const ready = github ? await advancePublication(db, github, now, { enabled: mode === 'live' }) : true;
     const definition = currentSlot(now);
+    const illustrate = illustrationClient(db, run, { env });
     for (const slot of SLOTS.map((item) => slotForDay(item, editorialDay(now)))) {
       if (slot.expiresAt.valueOf() <= now) await readySlot(db, slot, mode);
     }
@@ -314,7 +318,7 @@ export async function tick(db, run, { now = Date.now(), env = process.env } = {}
       const slot = await readySlot(db, definition, mode);
       if (slot.state === 'new') {
         try {
-          const artifact = await prepare(db, run, slot, definition, now);
+          const artifact = await prepare(db, run, slot, definition, now, illustrate);
           if (artifact) {
             await transaction(db, async (client) => {
               await changeState(client, slot, 'qualified', { cluster: artifact.cluster, event_id: artifact.eventId, slug: artifact.slug, draft: artifact });
@@ -343,7 +347,7 @@ export async function tick(db, run, { now = Date.now(), env = process.env } = {}
     try {
       await refresh(db, run, now, env);
       if (mode === 'live' && ready) await scheduleCorrection(db, run, now);
-      await refillReserve(db, run, now);
+      await refillReserve(db, run, now, illustrate);
     } catch (error) {
       if (error instanceof BudgetExhausted) console.log('Intake stopped at the daily model budget.');
       else pendingError ??= error;

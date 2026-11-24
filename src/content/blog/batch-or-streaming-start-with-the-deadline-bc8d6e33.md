@@ -1,20 +1,22 @@
 ---
 title: Batch or streaming? Start with the deadline
-description: Use freshness targets, workload sizing, and recovery drills to
-  decide whether to retain batch, tune it, or stream a few critical outputs.
+description: Choose a pipeline by when its output must be usable. Size compute
+  separately, and pilot streaming only where a tuned batch would arrive too
+  late.
 answer: "Keep batch when it reliably delivers correct results before consumers
-  need them. Size the compute separately: a big batch may need a cluster, while
-  a small stream may not. Pilot streaming where even a tuned batch would miss a
-  decision deadline."
+  need them. Size compute separately: a large batch may need a cluster, while a
+  small stream may not. Pilot streaming where a tuned batch would still miss a
+  decision deadline, and test whether faster output actually changes the
+  decision."
 author: Intelleo Editorial
 automated: true
 format: explainer
 eventId: bc8d6e33cc51cad5a1bf9ce221b22499
 cluster: data
 subject: pipeline-architecture
+shape: comparison
 publishDate: 2026-11-24T11:02:46.072Z
-tags:
-  - streaming
+tags: []
 sources:
   - url: https://www.dataengineeringweekly.com/p/data-engineering-weekly-297
     title: "Data Engineering Weekly #297"
@@ -26,53 +28,61 @@ sources:
     date: 2026-11-23T22:12:38.000Z
   - url: https://huggingface.co/blog/ibm-research/time-series-powered-streamhouse
     title: "Time-Series Models in the Streamhouse: A New Frontier and Use Cases"
-    publisher: huggingface.co
+    publisher: IBM Research
     date: 2026-11-18T15:00:23.000Z
 hero:
   src: /images/editorial/batch-or-streaming-start-with-the-deadline-bc8d6e33.webp
-  alt: Set a deadline and correctness target, test tuned batch at peak and during
-    recovery, and pilot streaming if batch fails.
-  credit: Diagram by Intelleo Editorial, based on the sources cited below.
+  alt: "Abstract illustration: Two paths carry beads toward the same closing
+    aperture: one releases them in groups, the other one by one. Differently
+    sized channels separate carrying capacity from cadence."
+  credit: Illustration generated with AI (recraft/recraft-v4.1-flash) for Intelleo
+    Editorial.
 ---
 
-A pipeline review should start with two questions: **When does the consumer need the result, and how much work does it take to produce it?** The first determines whether a schedule is good enough. The second determines how much compute to provision. A large overnight transformation may need distributed compute without needing streaming. A modest feed of machine readings may need continuous processing because an operator can still intervene. Changing the processing cadence won’t fix an oversized engine, and changing the engine won’t necessarily remove the wait for the next run.
+A hypothetical retailer has two jobs for the same inventory feed. The planning team needs a reconciled snapshot before its morning purchasing run. The checkout service needs to know whether it can promise the last unit before confirming an order. Publishing every inventory change might help checkout, but it does nothing for the planners if their snapshot was already correct and on time. And if checkout needs an authoritative reservation, a faster feed alone won't give it one.
 
-## How fresh does the output need to be?
+For engineers choosing between scheduled batch, shorter incremental batches and continuous processing, the first question isn't how fast the engine can run. It's when each consumer stops being able to use the result. Ask that question separately for each output, even when the outputs share a source. A model's online features and its training dataset don't have to update on the same clock.
 
-Start with the decision the output supports. For a report reviewed each morning, specify when it must be ready and which records it must include. For a signal that might influence a payment decision, specify when the application must receive the signal and what it should do if the signal is missing. In both cases, define an acceptable rate of missed deadlines. An average latency target alone won’t tell you whether the pipeline works when consumers need it most.
+## When does the result stop being useful?
 
-Measure from the source event or change to the point where the result is usable. For batch, include the wait for the next run, the transformation, and publication. For streaming, include ingestion, time in queues, any wait for an aggregation window, and delivery. If the result triggers an action, measure that handoff too. A faster query won’t help if the destination refreshes on a slower schedule or the application can’t act on the result.
+Write down the consumer, the action it takes and the latest time it can take that action. Then define what counts as a usable result: how current the input must be, which records must be present and whether a provisional answer is acceptable. A report can have a fixed delivery deadline. An online feature can have a maximum age at inference time. An alert can have a deadline relative to the event that triggered it. Those are different contracts, even if every pipeline publishes to the same store.
 
-**Hypothetical example:** A retailer uses sales events for both morning reconciliation and intraday replenishment. Test whether more frequent incremental batches deliver replenishment signals before the last useful ordering time, including on a busy day. If they do, keep the simpler path. If they don’t, test streaming for replenishment rather than moving reconciliation and its historical joins onto the same path. Give each output its own freshness and correctness targets.
+Measure from the event or input cutoff to the point where the consumer can read a validated result. For batch, include upstream arrival, the wait for the next run, queue time, execution, checks and publication. For streaming, include ingestion lag, processing, any wait for late events and the time it takes for the serving layer to expose the update. A job finishing on time doesn't help if the consumer is still reading yesterday's partition or a stale cache.
 
-## What does Flock’s migration tell us about batch scale?
+[IBM Research's announcement about time-series models in Confluent](https://huggingface.co/blog/ibm-research/time-series-powered-streamhouse) makes the timing problem concrete: a forecast delivered after a payment authorization may be accurate but too late to affect it. IBM says its integration can apply forecasting and anomaly detection to streaming data through Flink. That's an implementation example, not evidence that streaming will meet your deadline. Use the consumer's timing contract to decide which options deserve a test.
 
-[Data Engineering Weekly’s account of Flock](https://www.dataengineeringweekly.com/p/data-engineering-weekly-297) describes a move from AWS Glue to in-process DuckDB for its dbt transformations. The newsletter reports shorter core builds and lower daily compute spend. The supplied coverage doesn’t independently confirm the magnitude of those gains, so use the case to identify an option worth testing, not to estimate savings. It’s an account of changing the engine for batch work, not a comparison with streaming. Faster builds also don’t establish how long data waited for a run or when consumers could use it.
 
-The newsletter frames the migration around Iceberg storage and the ability to change the compute engine without changing the storage architecture. [Leanpub’s survey of data engineering books](https://leanpub.com/topics/data-engineering) gives a separate, smaller-scale illustration: a teaching project loads DuckDB, transforms with dbt, and runs under Airflow on a laptop. Together, the examples show where an embedded engine fits in a batch workflow. The teaching project does not validate Flock’s results or establish production capacity.
+![Scheduled batch, incremental batch and streaming compared by when they fit, what delays output and what to test.](/images/editorial/batch-or-streaming-start-with-the-deadline-bc8d6e33-figure-1.webp)
 
-For your own sizing decision, don’t use model count as a proxy for workload. Look at the largest scans and joins, peak memory, overlapping runs, and the amount of data you may have to reprocess. Compare time spent starting workers and coordinating work with time spent doing the transformations. Test a simpler engine on both a routine run and a backfill that overlaps scheduled work. If the candidate is cheaper on a quiet day but repeatedly misses the publication deadline during recovery, it hasn’t passed the same test as the incumbent.
+*Figure 1: Use the least demanding cadence that meets the consumer's deadline and correctness rules. Choose compute size after measuring the work.*
 
-## When is streaming worth testing?
 
-[IBM’s write-up on time-series models in Confluent](https://huggingface.co/blog/ibm-research/time-series-powered-streamhouse) describes applying forecasting and anomaly detection to streaming data with Apache Flink and SQL. IBM suggests uses such as helping keep production lines in spec, detecting unusual store activity, and supplying signals for card-payment assessment. These are IBM’s proposed applications, not independently verified outcomes or comparisons against scheduled jobs. Their common premise is that a result arriving after a production run or payment authorization may no longer influence the decision.
+## Can a tuned batch meet the deadline?
 
-That is a different question from the one Flock’s case raises. Flock’s migration is a reason to test whether your batch engine fits the workload. IBM’s examples are a reason to test whether waiting for a batch sacrifices a useful action. For a forecasting pilot, compare the same model and output under the two cadences if possible. Track when the forecast becomes usable, whether it arrives before the decision, and what happens when inference or delivery falls behind. That comparison isolates the value of earlier delivery from the value of adding the model in the first place.
+Start by measuring the existing job under realistic load, including slow upstream deliveries, busy compute queues and runs that need a retry. Look at the fraction of outputs that arrive both correct and on time, not just the median runtime. For a fixed deadline, find out how much margin remains once the output is visible. For a recurring decision, check whether events arriving just after a cutoff wait too long for the next usable result.
 
-Also test how the system behaves when information is incomplete. If a late event changes an alert, decide whether to revise the result, ignore it after a cutoff, or route it for reconciliation. If replay produces the same alert again, verify that the receiver won’t act twice. Don’t leave those choices to the streaming engine’s defaults: they depend on whether the output is advisory, feeds a report, or triggers an action that’s hard to reverse.
+Tune the part of the path that costs you the most time. If the job repeatedly scans unchanged data, try processing only new or changed partitions. If the schedule dominates, run smaller increments more often and check that startup overhead and overlapping runs don't erase the benefit. If late inputs dominate, faster compute won't make those inputs appear. A shorter batch interval is worth testing when it buys enough time without forcing consumers to accept incomplete data.
 
-## What should go on the architecture review checklist?
+In a hypothetical example, a feature refresh takes three minutes but runs every 30 minutes. An event that just misses the input cutoff may wait nearly a full interval before the next run even starts. If the feature must reflect changes within ten minutes, shortening the interval could solve the problem. But five-minute increments that take three minutes leave about two minutes at the worst point in the schedule for queueing, validation and serving, before accounting for any upstream delay. Test that margin under load rather than treating it as guaranteed.
 
-Compare three candidates where practical: the current batch pipeline, a tuned or more frequent incremental batch, and the smallest streaming path that could meet the requirement. Use the same representative inputs and correctness checks. An apparent performance win means little if one candidate silently drops late records or publishes an output with different semantics.
+## How much compute does the work need?
 
-- **Latency and freshness.** Specify the latest useful delivery time for each output. Measure end-to-end lag at normal load, at peak, and after an interruption. Count deadline misses and time to catch up; the first successful output after a restart doesn’t tell you when the backlog is clear.
-- **Compute overhead.** For batch, separate startup and coordination from scans and transformations. For streaming, include baseline processing, buffering, retained state, checkpointing, and inference if applicable. Compare spend over the same period, including quiet hours and reprocessing. Put the cost beside the freshness results rather than choosing on compute spend alone.
-- **Operational complexity.** Name the owners of lag alerts, schema changes, recovery, and downstream corrections. Exercise a failed batch run and a stream restart with replay. Ask operators to show how they would identify missing or duplicate outputs, recover them, and keep normal traffic running. Include the downstream team if recovery can reissue an action.
+Treat cadence and capacity as separate decisions. Estimate how much data each run reads, how expensive its joins or model calls are, and what memory and throughput it needs at peak. For a stream, include retained state, bursts and catch-up after downtime. A batch that joins large historical datasets may need distributed compute to finish before publication. A low-volume stream with a simple transform and bounded state may fit on one worker, although recovery and availability requirements still matter.
 
-Agree on the decision rule before the pilot: eliminate candidates that miss freshness or correctness targets, then compare the survivors on cost, recovery burden, and migration effort. If a tuned batch passes, a continuously emitting source isn’t by itself a reason to stream. If no option passes, pinpoint the measured bottleneck before making the architecture larger. A slow destination, for instance, may limit both designs.
+[Data Engineering Weekly](https://www.dataengineeringweekly.com/p/data-engineering-weekly-297) reports that Flock moved nearly 480 dbt models from AWS Glue to in-process DuckDB. The same issue describes Meesho routing Spark jobs onto warm cluster pools. Read those as contrasting examples of compute placement, not as a head-to-head benchmark or a batch-versus-streaming result. The [Leanpub data engineering guide](https://leanpub.com/topics/data-engineering) offers a smaller example: a teaching pipeline that loads DuckDB, transforms with dbt and runs under Airflow on a laptop. Neither the tool name nor the fact that a job is scheduled tells you what infrastructure it needs.
 
-## Where should a hybrid design split the work?
+Compare candidate deployments at the same correctness and deadline target. For batch, count startup, idle capacity and retries as well as execution. For streaming, count continuously provisioned capacity, state storage and the resources needed to recover while fresh events keep arriving. The useful cost comparison is what each design costs to meet the same consumer contract, not what an isolated job or worker costs to run.
 
-Split by output rather than by source. A streaming path could publish provisional alerts while a batch path reconciles historical totals. Assign an authoritative output to each consumer, document how corrections are published, and test whether the two paths interpret the same business rules consistently. If neither team owns discrepancies, a narrow streaming pilot can leave you maintaining two definitions of the same result.
+## What would a streaming pilot have to prove?
 
-The default is to retain batch where it meets the deadline, right-size the engine where compute is a poor fit, and pilot streaming only for decisions that can’t wait. For related reading, browse the [data topic hub](/topics/data). If a pipeline feeds an AI application, see [how to evaluate an AI agent beyond its score](/blog/how-to-evaluate-an-ai-agent-beyond-its-score-a2cbe4b5) and [how AI search engines choose citations](/blog/how-ai-search-engines-choose-citations) for examples of looking beyond the pipeline to the output consumers actually use.
+Pick one decision for which measured batch delay matters. Run the stream alongside the tuned batch and record when each result becomes usable. Compare them at the same input cutoff and under the same rules for late records. Otherwise, a provisional stream output can appear faster simply because it excludes data the batch waits for. If provisional results are useful, measure how often they change and what a correction would mean for the consumer. Updating a dashboard is different from retracting an action already taken.
+
+Exercise duplicate events, out-of-order arrival, a restart and a backlog. Check whether processing a record again can repeat a side effect, whether replay reproduces the expected result and how long the system takes to return to its freshness target after an outage. For ML features, check that the streamed calculation and the offline reference use the same time boundaries and missing-value rules. If the pilot shows a difference in model behavior, determine whether it comes from fresher inputs or a change in feature semantics. For more on evaluating a system beyond a single metric, see [how to evaluate an AI agent beyond its score](/blog/how-to-evaluate-an-ai-agent-beyond-its-score-a2cbe4b5) and [where to check an AI agent's actions](/blog/where-to-check-an-ai-agent-s-actions-dea294f6).
+
+Set the promotion rule before the pilot. Require the stream to meet the deadline at the agreed reliability level, stay within a defined tolerance against the reference result, and recover within the time the consumer can tolerate. Then ask whether the earlier result changes enough decisions to justify another production path. Lower processing latency is not, by itself, a reason to migrate.
+
+## Which design should you keep?
+
+Keep scheduled batch when it has enough margin to deliver a correct result through routine delays and retries. Use shorter incremental batches when waiting for the next run is the main problem and smaller runs still leave room for validation and recovery. Pilot streaming when a tuned batch cannot meet the deadline and the source emits the needed data early enough for a stream to help. If the source itself is late or the consumer cannot act any sooner, fix that constraint first.
+
+A mixed design can be the right outcome: stream the signal that changes a live decision, and keep batch for historical rebuilds or reconciled outputs. If both paths calculate the same metric, say which is authoritative and how corrections reach consumers. Revisit cadence when the decision deadline changes; revisit compute when the workload changes. They need not change together. Explore more architecture guides in [Data](/topics/data).
