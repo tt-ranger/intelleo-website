@@ -67,7 +67,7 @@ export function checkQuestionHeadings(article) {
     : [];
 }
 
-export function checkInternalLinks(article, { publishedSlugs = [] } = {}) {
+export function checkInternalLinks(article, { publishedSlugs = [], batchSlugs = [] } = {}) {
   const out = [];
   const links = [...prose(article.body).matchAll(/\]\((\/[^)\s]+)\)/g)].map((m) => m[1]);
   const pillar = `/topics/${article.data.cluster}`;
@@ -76,7 +76,9 @@ export function checkInternalLinks(article, { publishedSlugs = [] } = {}) {
     out.push(err('no-pillar-link', `No link to the cluster pillar ${pillar}. Orphaned articles are not crawled or cited.`));
   }
   const articleLinks = links.filter((l) => l.startsWith('/blog/'));
-  const valid = articleLinks.filter((l) => publishedSlugs.includes(l.replace(/^\/blog\//, '').replace(/\/$/, '')));
+  // Same-batch articles resolve as link targets, but the sibling minimum below only counts already-published ones.
+  const resolvable = new Set([...publishedSlugs, ...batchSlugs]);
+  const valid = articleLinks.filter((l) => resolvable.has(l.replace(/^\/blog\//, '').replace(/\/$/, '')));
   const broken = articleLinks.filter((l) => !valid.includes(l));
 
   for (const b of broken) out.push(err('broken-internal-link', `Internal link ${b} does not resolve to a published article.`));

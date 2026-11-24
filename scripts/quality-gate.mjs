@@ -30,6 +30,10 @@ const registry = loadRegistry();
 const targets = changed ? changed.map(parseArticle) : files.length ? files.map(parseArticle) : listArticles();
 const targetSlugs = new Set(targets.map(({ slug }) => slug));
 const corpus = listPublished().filter(({ slug }) => !targetSlugs.has(slug));
+// Slugs that existed before this run. Passing targets join `corpus` for the
+// duplicate and rate checks, but must not change the sibling-link minimum,
+// or the outcome would depend on the order articles are checked in.
+const priorSlugs = corpus.map(({ slug }) => slug);
 const report = [];
 
 function existingArticle(article) {
@@ -66,6 +70,9 @@ for (const article of targets) {
   }
   const prior = existingArticle(article);
   const ctx = articleContext(corpus, registry);
+  // Articles checked together ship together (any failure fails the run), so links between them resolve.
+  ctx.publishedSlugs = priorSlugs;
+  ctx.batchSlugs = [...targetSlugs];
   const hook = article.data.newsHook;
   if (hook && prior?.data.newsHook?.url === hook.url
       && new Date(prior.data.newsHook.date).valueOf() === new Date(hook.date).valueOf()) {

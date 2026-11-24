@@ -219,6 +219,21 @@ describe('duplication', () => {
   });
 });
 
+describe('internal links within a batch', () => {
+  const linking = () => article({}, `## What is it?\n${words(700)}\n[pillar](/topics/ml) [a](/blog/existing-one) [b](/blog/new-sibling)\n## How?\n${words(700)}`);
+  test('a link to an article in the same batch resolves', () => {
+    const issues = codes(checkInternalLinks(linking(), { publishedSlugs: ['existing-one', 'existing-two'], batchSlugs: ['new-sibling'] }));
+    assert.ok(!issues.includes('broken-internal-link'));
+  });
+  test('without the batch the same link is broken', () => {
+    assert.ok(codes(checkInternalLinks(linking(), { publishedSlugs: ['existing-one', 'existing-two'] })).includes('broken-internal-link'));
+  });
+  test('batch articles do not raise the sibling minimum', () => {
+    const one = article({}, `## What is it?\n${words(700)}\n[pillar](/topics/ml) [a](/blog/existing-one)\n## How?\n${words(700)}`);
+    assert.ok(!codes(checkInternalLinks(one, { publishedSlugs: ['existing-one'], batchSlugs: ['test-article', 'new-sibling'] })).includes('few-internal-links'));
+  });
+});
+
 describe('rate limit', () => {
   test('a dated exception raises the limit for that day only', () => {
     const at = (day, i) => ({ slug: `p${day}${i}`, data: { publishDate: new Date(`${day}T06:00:00Z`) } });
