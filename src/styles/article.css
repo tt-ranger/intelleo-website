@@ -33,6 +33,10 @@
 .prose th,.prose td{border:1px solid var(--line);padding:10px 14px;text-align:left}
 .prose th{background:var(--panel);font-family:var(--display)}
 .prose img{max-width:100%;border-radius:10px}
+/* In-article figures: an image paragraph followed by an italic "Figure N:" caption paragraph. */
+.prose p:has(> img:only-child){margin-top:32px}
+.prose p:has(> img:only-child) img{display:block;width:100%;height:auto;border:1px solid var(--line)}
+.prose p:has(> img:only-child) + p:has(> em:only-child){margin-top:10px;font-size:14px;line-height:1.5;color:var(--muted)}
 
 /* answer-first summary block */
 .answer{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--copper);

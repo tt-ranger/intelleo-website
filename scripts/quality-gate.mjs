@@ -63,6 +63,24 @@ async function checkHero(article) {
   }
 }
 
+/** Every in-body image must exist; editorial figures must be well-formed 1200px WebP files. */
+async function checkFigures(article) {
+  const issues = [];
+  for (const [, alt, src] of article.body.matchAll(/!\[([^\]]*)\]\((\/images\/[^)\s]+)\)/g)) {
+    try {
+      const image = readFileSync(`public${src}`);
+      if (src.startsWith('/images/editorial/')) {
+        const metadata = await sharp(image).metadata();
+        if (metadata.format !== 'webp' || metadata.width !== 1200 || metadata.height < 200 || metadata.height > 1400
+          || image.length > 300000 || alt.trim().length < 12) throw new Error();
+      }
+    } catch {
+      issues.push({ level: 'error', code: 'invalid-figure', message: `${src} is missing, malformed, or lacks alt text.` });
+    }
+  }
+  return issues;
+}
+
 for (const article of targets) {
   if (article.data.draft === true) {
     report.push({ slug: article.slug, skipped: 'draft', errors: [], warnings: [] });
@@ -78,7 +96,7 @@ for (const article of targets) {
       && new Date(prior.data.newsHook.date).valueOf() === new Date(hook.date).valueOf()) {
     ctx.asOf = new Date(prior.data.publishDate).valueOf();
   }
-  const issues = [...runPureChecks(article, ctx), ...await checkHero(article)];
+  const issues = [...runPureChecks(article, ctx), ...await checkHero(article), ...await checkFigures(article)];
   if (!offline && Array.isArray(article.data.sources)) {
     for (const result of await verifyCitations(article.data.sources, { fetchImpl: fetchPublic })) {
       if (!result.ok) issues.push({ level: 'error', code: result.code, message: `${result.url} — ${result.message}` });

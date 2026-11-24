@@ -50,7 +50,9 @@ const schema = [{
       <h2>How is an article written and checked?</h2>
       <ol>
         <li>A research model prepares a brief: the reader, the decision they face, and the sources to use.</li>
-        <li>A writing model drafts the article and a ledger tying each material claim to an exact quoted passage.</li>
+        <li>A writing model drafts the article in a structure suited to the material (a comparison, a decision guide,
+          a step-by-step playbook and so on), along with a ledger tying each material claim to an exact quoted passage.</li>
+        <li>Figures are drawn by software from the draft. Any number or date in a figure must be quoted from a source.</li>
         <li>Software checks that every quoted passage really appears in its source, that consequential claims are
           independently corroborated, and that every link points to a listed source.</li>
         <li>A different model fact-checks the full article against the source passages and blocks anything unsupported.</li>
@@ -59,6 +61,10 @@ const schema = [{
           output at one article a day.</li>
       </ol>
       <p>A draft that fails any step is revised or discarded. On some days nothing is published.</p>
+      <p>
+        Only a draft that has passed every check gets a header image: an abstract illustration generated with AI,
+        inspected by a separate model for stray text, logos or people, or a plain title card if no illustration passes.
+      </p>
 
       <h2>What happens when something is wrong?</h2>
       <p>

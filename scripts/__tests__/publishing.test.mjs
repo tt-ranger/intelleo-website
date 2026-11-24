@@ -135,7 +135,7 @@ const brief = {
   title: 'How does the new test guide work?', format: 'news', reader: 'ML practitioners',
   cluster: 'ml', subject: 'model-evaluation', eventId: 'idevent12345678', lead, sources,
   eventAt: '2026-11-24T07:00:00Z', dateEvidence: lead.excerpts[0],
-  angle: 'Explain the reproduction protocol.',
+  angle: 'Explain the reproduction protocol.', shape: 'what-changed',
 };
 const claims = sources.map(({ id, excerpts }) => ({ claim: excerpts[0], consequential: false, evidence: [{ sourceId: id, excerpt: excerpts[0] }] }));
 const paragraphs = 'Set up an evaluation workspace with a controlled test corpus, then record configuration details near the experiment. ';
@@ -143,10 +143,15 @@ const copy = {
   title: 'How does the new test guide work?',
   description: 'The new guide outlines a reproducible approach for scoring model responses and documenting evaluation inputs.',
   answer: 'Start with the same reference examples and keep the measurement configuration fixed. Record the settings alongside the output so a second reviewer can reproduce the run.',
-  body: `## What changed in the guide?\n\n${paragraphs.repeat(23)}\n\nSee the [guide](${sources[0].url}) and [reproduction](${sources[1].url}).\n\n## How should teams reproduce results?\n\n${paragraphs.repeat(23)}\n\nRead the [measurement notes](${sources[2].url}) and our [ML topic hub](/topics/ml).`,
+  body: `## What changed in the guide?\n\n${paragraphs.repeat(23)}\n\nSee the [guide](${sources[0].url}) and [reproduction](${sources[1].url}).\n\n{{figure-1}}\n\n## How should teams reproduce results?\n\n${paragraphs.repeat(23)}\n\nRead the [measurement notes](${sources[2].url}) and our [ML topic hub](/topics/ml).`,
   tags: ['evaluation'], claims,
-  visual: { kind: 'diagram', title: 'Evaluation workflow', steps: ['Set up the reference', 'Record configuration'],
-    alt: 'Two steps for setting up and documenting an evaluation workflow.', units: '', metrics: [] },
+  figures: [{
+    kind: 'flow', title: 'Evaluation workflow', units: '', columns: [], axes: { x: '', y: '' },
+    caption: 'Fix the reference examples first, then record the configuration with every run.',
+    alt: 'Two steps for setting up and documenting an evaluation workflow.',
+    items: ['Set up the reference', 'Record configuration'].map((label) => ({ label, detail: '', cells: [], value: 0, sourceId: -1, excerpt: '' })),
+  }],
+  illustration: { concept: 'Two parallel beams of light aligned against a fixed reference grid.' },
 };
 const goodEditorial = { scores: { answersQuestion: 4, substance: 3, originality: 3, clarity: 4 }, issues: [] };
 
@@ -187,7 +192,11 @@ test('Sol writes, Terra fact-checks and edits, and a failed fact-check forces a 
   ]);
   const checkedArticle = parseArticleText(artifact.markdown, artifact.slug);
   assert.equal(checkedArticle.data.author, 'Intelleo Editorial');
-  assert.equal(artifactPaths(artifact).length, 2);
+  assert.equal(artifactPaths(artifact).length, 3);
+  assert.equal(checkedArticle.data.shape, 'what-changed');
+  assert.match(checkedArticle.body, /!\[Two steps[^\]]*\]\(\/images\/editorial\/[a-z0-9-]+-figure-1\.webp\)\n\n\*Figure 1: Fix the reference/);
+  assert.equal(checkedArticle.data.hero.credit, 'Title card by Intelleo Editorial.');
+  assert.throws(() => artifactPaths({ ...artifact, figures: [{ ...artifact.figures[0], image: 'dGFtcGVy' }] }), /intact/);
   assert.throws(() => artifactPaths({ ...artifact, markdown: artifact.markdown + 'tamper' }), /intact/);
   const image = await sharp(Buffer.from(artifact.image, 'base64')).metadata();
   assert.deepEqual([image.format, image.width, image.height], ['webp', 1200, 630]);
@@ -258,4 +267,26 @@ test('GitHub publishing waits for exact-head CI and refuses a changed article', 
   tamper = false;
   assert.deepEqual(await publisher.merge(slot), { merged });
   assert.equal(mergeCalls, 1);
+});
+
+test('the hero illustration is generated once, only after a draft passes every check', async () => {
+  let checked = 0;
+  const illustrated = [];
+  const run = async ({ name }) => name === 'write_article' ? copy
+    : name === 'fact_check' ? (++checked === 1 ? { pass: false, blockers: ['Fix the date.'] } : { pass: true, blockers: [] })
+      : goodEditorial;
+  const image = await sharp({ create: { width: 1200, height: 630, channels: 3, background: '#123456' } }).webp().toBuffer();
+  const illustrate = async (concept) => { illustrated.push(concept); return { image, model: 'recraft/recraft-v4.1-flash' }; };
+  const artifact = await produceDraft(run, brief, { corpus: [], registry: loadRegistry(), now, illustrate });
+  assert.deepEqual(illustrated, [copy.illustration.concept]);
+  const article = parseArticleText(artifact.markdown, artifact.slug);
+  assert.equal(article.data.hero.credit, 'Illustration generated with AI (recraft/recraft-v4.1-flash) for Intelleo Editorial.');
+  assert.match(article.data.hero.alt, /^Abstract illustration: Two parallel beams/);
+  assert.equal(artifact.image, image.toString('base64'));
+  assert.doesNotThrow(() => artifactPaths(artifact));
+
+  const fallback = await produceDraft(async ({ name }) => name === 'write_article' ? copy
+    : name === 'fact_check' ? { pass: true, blockers: [] } : goodEditorial,
+  brief, { corpus: [], registry: loadRegistry(), now, illustrate: async () => null });
+  assert.equal(parseArticleText(fallback.markdown, fallback.slug).data.hero.credit, 'Title card by Intelleo Editorial.');
 });
