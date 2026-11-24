@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   checkSubstance, checkSources, checkAnswerFirst, checkQuestionHeadings,
   checkInternalLinks, checkNewsFreshness, checkSubjectCap, checkClusterBalance,
-  checkClaimShape, checkDuplication, checkRateLimit, similarity, MIN_WORDS,
+  checkClaimShape, checkDuplication, checkRateLimit, similarity, angleOverlap, MIN_WORDS,
 } from '../lib/checks.mjs';
 import { loadRegistry } from '../lib/articles.mjs';
 import { keyTerms, extractText, checkSource } from '../link-check.mjs';
@@ -136,16 +136,17 @@ describe('news freshness', () => {
 });
 
 describe('subject cap', () => {
-  test('rejects the 11th article in a subject', () => {
-    const ctx = { ...baseCtx, subjectCounts: { 'model-evaluation': 10 } };
+  const cap = registry.byId['model-evaluation'].cap;
+  test('rejects the article past the cap', () => {
+    const ctx = { ...baseCtx, subjectCounts: { 'model-evaluation': cap } };
     assert.ok(codes(checkSubjectCap(article(), ctx)).includes('subject-at-cap'));
   });
-  test('accepts the 10th', () => {
-    const ctx = { ...baseCtx, subjectCounts: { 'model-evaluation': 9 } };
+  test('accepts the last article under the cap', () => {
+    const ctx = { ...baseCtx, subjectCounts: { 'model-evaluation': cap - 1 } };
     assert.ok(!codes(checkSubjectCap(article(), ctx)).includes('subject-at-cap'));
   });
   test('warns as the cap approaches', () => {
-    const ctx = { ...baseCtx, subjectCounts: { 'model-evaluation': 8 } };
+    const ctx = { ...baseCtx, subjectCounts: { 'model-evaluation': cap - 2 } };
     assert.ok(codes(checkSubjectCap(article(), ctx)).includes('subject-near-cap'));
   });
   test('rejects an unknown subject', () => {
@@ -189,8 +190,28 @@ describe('duplication', () => {
     assert.ok(codes(checkDuplication(article(), { corpus: [other] })).includes('duplicate-title'));
   });
   test('accepts distinct content', () => {
-    const other = { slug: 'other', body: words(500) + ' unrelated vocabulary', data: { title: 'Totally Different' } };
+    const other = { slug: 'other', body: words(500).replace(/word/g, 'term'), data: { title: 'Totally Different' } };
     assert.equal(checkDuplication(article(), { corpus: [other] }).length, 0);
+  });
+  test('rejects the same angle in different words within 90 days', () => {
+    const other = {
+      slug: 'other', body: 'completely different words entirely here',
+      data: { ...article().data, title: 'Reasonable Title Testing Again', publishDate: new Date('2026-09-01') },
+    };
+    const issues = codes(checkDuplication(article(), { corpus: [other], asOf: new Date('2026-09-15') }));
+    assert.ok(issues.includes('duplicate-angle'));
+    assert.ok(!issues.includes('duplicate-title'));
+  });
+  test('allows revisiting an angle after the window', () => {
+    const other = {
+      slug: 'other', body: 'completely different words entirely here',
+      data: { ...article().data, title: 'Reasonable Title Testing Again', publishDate: new Date('2026-01-01') },
+    };
+    assert.ok(!codes(checkDuplication(article(), { corpus: [other], asOf: new Date('2026-09-15') })).includes('duplicate-angle'));
+  });
+  test('angle overlap ignores filler words and handles empty text', () => {
+    assert.equal(angleOverlap({ data: { title: 'How does the RAG work?' } }, { data: { title: 'Why the RAG works' } }), 1 / 3);
+    assert.equal(angleOverlap({ data: {} }, { data: { title: 'Anything' } }), 0);
   });
   test('similarity is bounded 0..1', () => {
     assert.equal(similarity('a b c d e f', 'a b c d e f'), 1);
@@ -198,7 +219,31 @@ describe('duplication', () => {
   });
 });
 
+describe('internal links within a batch', () => {
+  const linking = () => article({}, `## What is it?\n${words(700)}\n[pillar](/topics/ml) [a](/blog/existing-one) [b](/blog/new-sibling)\n## How?\n${words(700)}`);
+  test('a link to an article in the same batch resolves', () => {
+    const issues = codes(checkInternalLinks(linking(), { publishedSlugs: ['existing-one', 'existing-two'], batchSlugs: ['new-sibling'] }));
+    assert.ok(!issues.includes('broken-internal-link'));
+  });
+  test('without the batch the same link is broken', () => {
+    assert.ok(codes(checkInternalLinks(linking(), { publishedSlugs: ['existing-one', 'existing-two'] })).includes('broken-internal-link'));
+  });
+  test('batch articles do not raise the sibling minimum', () => {
+    const one = article({}, `## What is it?\n${words(700)}\n[pillar](/topics/ml) [a](/blog/existing-one)\n## How?\n${words(700)}`);
+    assert.ok(!codes(checkInternalLinks(one, { publishedSlugs: ['existing-one'], batchSlugs: ['test-article', 'new-sibling'] })).includes('few-internal-links'));
+  });
+});
+
 describe('rate limit', () => {
+  test('a dated exception raises the limit for that day only', () => {
+    const at = (day, i) => ({ slug: `p${day}${i}`, data: { publishDate: new Date(`${day}T06:00:00Z`) } });
+    const published = [at('2026-11-24', 0), at('2026-11-24', 1), at('2026-11-25', 0)];
+    const dayLimits = { '2026-11-24': 3 };
+    const on = (day) => article({ publishDate: new Date(`${day}T08:00:00Z`) });
+    assert.equal(checkRateLimit(on('2026-11-24'), { published, maxPerDay: 1, dayLimits }).length, 0);
+    assert.ok(codes(checkRateLimit(on('2026-11-25'), { published, maxPerDay: 1, dayLimits })).includes('rate-limit'));
+    assert.ok(codes(checkRateLimit(on('2026-11-24'), { published: [...published, at('2026-11-24', 2)], maxPerDay: 1, dayLimits })).includes('rate-limit'));
+  });
   test('rejects a fifth article on the same day', () => {
     const published = Array.from({ length: 4 }, (_, i) => ({
       slug: `p${i}`, data: { publishDate: new Date('2026-09-15') },

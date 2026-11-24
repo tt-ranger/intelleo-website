@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE, AUTHOR, CLUSTERS, CLUSTER_IDS, POLICY } from '../data/site';
+import '../styles/article.css';
+
+const schema = [{
+  '@type': 'AboutPage',
+  '@id': `${SITE.url}/about#page`,
+  url: `${SITE.url}/about`,
+  name: 'About Intelleo',
+  isPartOf: { '@id': `${SITE.url}/#website` },
+  about: { '@id': `${SITE.url}/#organization` },
+  mainEntity: { '@id': `${SITE.url}/#organization` },
+}];
+const practices = CLUSTER_IDS.filter((id) => id !== 'geo');
+---
+<Base
+  title="About Intelleo — Deep Tech Consulting for AI, ML & Data"
+  description="Intelleo is a deep tech consulting firm founded by Sandeep Katti. We design, build and run AI, ML and data systems in production."
+  schema={schema}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">About</span>
+      <h1>About Intelleo</h1>
+      <p>{SITE.description}</p>
+    </div>
+  </section>
+  <section style="padding-top:24px">
+    <div class="wrap article-inner prose">
+      <h2>What we do</h2>
+      <p>
+        Most AI initiatives fail in the gaps between the idea and the model, the model and the data,
+        and the data and the software. Intelleo works across all four layers so nothing falls through.
+      </p>
+      <ul>
+        {practices.map((id) => (
+          <li><a href={`/topics/${id}`}>{CLUSTERS[id].label}</a>: {CLUSTERS[id].blurb}</li>
+        ))}
+      </ul>
+
+      <h2>Who we are</h2>
+      <p>
+        Intelleo was founded by {AUTHOR.name}, who leads its engagements and is accountable for everything
+        published on this site. We work as small teams with senior engineers, start from the business problem
+        rather than the technology, and hand over systems with the documentation and monitoring needed to keep
+        them running after the engagement ends.
+      </p>
+
+      <h2>How we publish</h2>
+      <p>
+        Our <a href="/blog">Insights</a> are produced by an automated editorial workflow that cites every claim
+        and is held to a written <a href={POLICY.editorialPolicy}>editorial policy</a>.
+        First-hand material from our own projects is published separately under <a href={POLICY.experience}>Experience</a>.
+        You can read <a href={POLICY.editorial}>how the workflow works</a> and see every <a href={POLICY.corrections}>correction</a>.
+      </p>
+
+      <h2>Contact</h2>
+      <p>Write to <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.</p>
+    </div>
+  </section>
+</Base>

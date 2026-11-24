@@ -1,0 +1,55 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { SITE, CLUSTERS } from '../../data/site';
+import { formatDate } from '../../lib/content';
+import '../../styles/article.css';
+
+const entries = (await getCollection('experience', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishDate.valueOf() - a.data.publishDate.valueOf());
+const KIND = { 'case-study': 'Case study', benchmark: 'Benchmark', 'field-note': 'Field note' } as const;
+
+const schema = [{
+  '@type': 'CollectionPage',
+  '@id': `${SITE.url}/experience#collection`,
+  name: 'Experience — Intelleo',
+  url: `${SITE.url}/experience`,
+  isPartOf: { '@id': `${SITE.url}/#website` },
+  publisher: { '@id': `${SITE.url}/#organization` },
+}];
+---
+<Base
+  title="Experience — Case Studies & Field Notes | Intelleo"
+  description="Case studies, benchmarks and field notes from AI, ML and data systems Intelleo has built and run in production."
+  schema={schema}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">Experience</span>
+      <h1>What we have built, and what it taught us.</h1>
+      <p>First-hand case studies, benchmarks and field notes from our own work.</p>
+    </div>
+  </section>
+  <section style="padding-top:24px">
+    <div class="wrap">
+      {entries.length === 0 ? (
+        <p class="muted">The first case studies are being written up.</p>
+      ) : (
+        <ul class="post-list">
+          {entries.map((e) => (
+            <li>
+              <a class="post-link" href={`/experience/${e.id}`}>
+                <div class="row">
+                  <span>{KIND[e.data.kind]} · {CLUSTERS[e.data.cluster].label}</span>
+                  <span>{formatDate(e.data.publishDate)}</span>
+                </div>
+                <h2>{e.data.title}</h2>
+                <p>{e.data.description}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+</Base>

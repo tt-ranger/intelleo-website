@@ -2,7 +2,7 @@
 #
 # Rules enforced by scripts/balance-check.mjs and the quality gate:
 #   * an article's `subject` MUST appear here, or the build fails
-#   * no subject may exceed its `cap` (default 10)
+#   * no subject may exceed its `cap` (default 4) within a rolling window
 #   * no cluster may exceed maxClusterShare of total published articles
 #
 # When subjects approach cap the /review dashboard warns you. Add new
@@ -10,13 +10,17 @@
 # headroom is the expected throttle on sustained output, not a bug.
 
 defaults:
-  cap: 10
+  cap: 4
 
 balance:
+  subjectWindowDays: 90
   maxClusterShare: 0.35     # no single cluster above 35% of published output
   minNewsHookShare: 0.40    # at least 40% of articles tied to a recent news item
   newsHookMaxAgeDays: 30
-  maxPerDay: 4
+  maxPerDay: 1
+  # Dated exceptions to maxPerDay (IST day -> limit). Keys must be quoted dates.
+  dayLimits:
+    '2026-11-24': 3         # launch batch
 
 clusters:
   ai:

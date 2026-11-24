@@ -5,7 +5,7 @@
  * Every function returns an array of { level, code, message }.
  * level: 'error' blocks publication, 'warn' is advisory.
  */
-import { wordCount, daysSince } from './articles.mjs';
+import { wordCount, editorialDay } from './articles.mjs';
 
 const err = (code, message) => ({ level: 'error', code, message });
 const warn = (code, message) => ({ level: 'warn', code, message });
@@ -13,7 +13,9 @@ const warn = (code, message) => ({ level: 'warn', code, message });
 export const MIN_WORDS = 1200;
 export const MIN_SOURCES = 3;
 export const MIN_INTERNAL_LINKS = 2;
-export const DUPLICATE_THRESHOLD = 0.85;
+export const DUPLICATE_THRESHOLD = 0.5;
+/** Share of distinctive title+answer words two articles may have in common. */
+export const ANGLE_THRESHOLD = 0.5;
 
 /** Strip fenced code so prose checks don't trip over sample code. */
 function prose(body) {
@@ -22,8 +24,9 @@ function prose(body) {
 
 export function checkSubstance(article) {
   const n = wordCount(article.body);
-  return n < MIN_WORDS
-    ? [err('thin-content', `${n} words; minimum is ${MIN_WORDS}. Thin content is the main scaled-content-abuse signal.`)]
+  const minimum = article.data.format === 'news' ? 500 : MIN_WORDS;
+  return n < minimum
+    ? [err('thin-content', `${n} words; minimum is ${minimum}.`)]
     : [];
 }
 
@@ -32,6 +35,9 @@ export function checkSources(article) {
   const sources = article.data.sources ?? [];
   if (sources.length < MIN_SOURCES) {
     out.push(err('few-sources', `${sources.length} sources; minimum is ${MIN_SOURCES}.`));
+  }
+  if (new Set(sources.map((source) => source?.url)).size < sources.length) {
+    out.push(err('duplicate-source', 'Each citation must refer to a distinct URL.'));
   }
   sources.forEach((s, i) => {
     if (!s?.url || !/^https?:\/\//.test(s.url)) out.push(err('bad-source-url', `sources[${i}] has no valid URL.`));
@@ -61,7 +67,7 @@ export function checkQuestionHeadings(article) {
     : [];
 }
 
-export function checkInternalLinks(article, { publishedSlugs = [] } = {}) {
+export function checkInternalLinks(article, { publishedSlugs = [], batchSlugs = [] } = {}) {
   const out = [];
   const links = [...prose(article.body).matchAll(/\]\((\/[^)\s]+)\)/g)].map((m) => m[1]);
   const pillar = `/topics/${article.data.cluster}`;
@@ -70,25 +76,29 @@ export function checkInternalLinks(article, { publishedSlugs = [] } = {}) {
     out.push(err('no-pillar-link', `No link to the cluster pillar ${pillar}. Orphaned articles are not crawled or cited.`));
   }
   const articleLinks = links.filter((l) => l.startsWith('/blog/'));
-  const valid = articleLinks.filter((l) => publishedSlugs.includes(l.replace(/^\/blog\//, '').replace(/\/$/, '')));
+  // Same-batch articles resolve as link targets, but the sibling minimum below only counts already-published ones.
+  const resolvable = new Set([...publishedSlugs, ...batchSlugs]);
+  const valid = articleLinks.filter((l) => resolvable.has(l.replace(/^\/blog\//, '').replace(/\/$/, '')));
   const broken = articleLinks.filter((l) => !valid.includes(l));
 
   for (const b of broken) out.push(err('broken-internal-link', `Internal link ${b} does not resolve to a published article.`));
 
   // Only enforce sibling linking once there is something to link to.
-  if (publishedSlugs.length >= MIN_INTERNAL_LINKS && valid.length < MIN_INTERNAL_LINKS) {
+  if (publishedSlugs.length >= MIN_INTERNAL_LINKS && new Set(valid.map((link) => link.replace(/\/$/, ''))).size < MIN_INTERNAL_LINKS) {
     out.push(err('few-internal-links', `${valid.length} in-body links to existing articles; need ${MIN_INTERNAL_LINKS}.`));
   }
   return out;
 }
 
-export function checkNewsFreshness(article, { maxAgeDays = 30 } = {}) {
+export function checkNewsFreshness(article, { maxAgeDays = 30, asOf = Date.now() } = {}) {
   const hook = article.data.newsHook;
-  if (!hook) return [];
-  const age = daysSince(hook.date);
+  if (!hook) return article.data.format === 'news' ? [err('missing-news-hook', 'News requires a verified event.')] : [];
+  const age = (new Date(asOf).valueOf() - new Date(hook.date).valueOf()) / 86_400_000;
+  if (age < 0) return [err('future-news-hook', 'The news event is dated in the future.')];
   if (Number.isNaN(age)) return [err('bad-news-date', 'newsHook.date is not a valid date.')];
-  return age > maxAgeDays
-    ? [err('stale-news-hook', `newsHook is ${Math.round(age)} days old; limit is ${maxAgeDays}.`)]
+  const limit = article.data.format === 'news' ? 3 : maxAgeDays;
+  return age > limit
+    ? [err('stale-news-hook', `News event is ${Math.round(age)} days old; limit is ${limit}.`)]
     : [];
 }
 
@@ -102,7 +112,7 @@ export function checkSubjectCap(article, { registry, subjectCounts = {} }) {
   }
   const current = subjectCounts[article.data.subject] ?? 0;
   if (current >= meta.cap) {
-    return [err('subject-at-cap', `subject "${article.data.subject}" already has ${current}/${meta.cap} articles. Add a new subject to subjects.yaml instead.`)];
+    return [err('subject-at-cap', `subject "${article.data.subject}" already has ${current}/${meta.cap} articles in the rolling window.`)];
   }
   if (current + 1 >= meta.cap - 1) {
     return [warn('subject-near-cap', `subject "${article.data.subject}" will be at ${current + 1}/${meta.cap}. Plan replacements.`)];
@@ -157,10 +167,38 @@ export function similarity(a, b, k = 5) {
   return inter / (A.size + B.size - inter);
 }
 
-export function checkDuplication(article, { corpus = [] } = {}) {
+const ANGLE_STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'that', 'this', 'from', 'what', 'how', 'why', 'when', 'does', 'are', 'can',
+  'your', 'you', 'its', 'into', 'than', 'then', 'they', 'their', 'will', 'should', 'about', 'more', 'not',
+]);
+
+/**
+ * Word-set Jaccard over title + answer. Catches two articles that make the
+ * same point in different words, which body shingles cannot see.
+ */
+export function angleOverlap(a, b) {
+  const words = ({ data }) => new Set(`${data.title ?? ''} ${data.answer ?? ''}`.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !ANGLE_STOPWORDS.has(w)));
+  const A = words(a);
+  const B = words(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const w of A) if (B.has(w)) inter++;
+  return inter / (A.size + B.size - inter);
+}
+
+export function checkDuplication(article, { corpus = [], asOf = Date.now(), angleWindowDays = 90 } = {}) {
   const out = [];
   for (const other of corpus) {
     if (other.slug === article.slug) continue;
+    const age = (new Date(asOf).valueOf() - new Date(other.data.publishDate).valueOf()) / 86_400_000;
+    const angle = age <= angleWindowDays ? angleOverlap(article, other) : 0;
+    if (angle > ANGLE_THRESHOLD) {
+      out.push(err('duplicate-angle', `title and answer overlap ${(angle * 100).toFixed(0)}% with ${other.slug}; threshold is ${ANGLE_THRESHOLD * 100}%.`));
+    }
+    if (article.data.eventId && article.data.eventId === other.data.eventId) {
+      out.push(err('duplicate-event', `Event already covered by ${other.slug}.`));
+    }
     const s = similarity(article.body, other.body);
     if (s > DUPLICATE_THRESHOLD) {
       out.push(err('duplicate-topic', `${(s * 100).toFixed(0)}% similar to ${other.slug}; threshold is ${DUPLICATE_THRESHOLD * 100}%.`));
@@ -172,13 +210,16 @@ export function checkDuplication(article, { corpus = [] } = {}) {
   return out;
 }
 
-export function checkRateLimit(article, { published = [], maxPerDay = 4 }) {
-  const day = new Date(article.data.publishDate).toISOString().slice(0, 10);
+export function checkRateLimit(article, { published = [], maxPerDay = 4, dayLimits = {} }) {
+  if (!Number.isFinite(new Date(article.data.publishDate).valueOf())) return [err('bad-publish-date', 'Invalid publication date.')];
+  const day = editorialDay(article.data.publishDate);
+  // Dated one-off exceptions (e.g. a launch batch) from subjects.yaml balance.dayLimits.
+  const limit = dayLimits[day] ?? maxPerDay;
   const sameDay = published.filter(
-    (p) => p.slug !== article.slug && new Date(p.data.publishDate).toISOString().slice(0, 10) === day,
+    (p) => p.slug !== article.slug && Number.isFinite(new Date(p.data.publishDate).valueOf()) && editorialDay(p.data.publishDate) === day,
   );
-  return sameDay.length >= maxPerDay
-    ? [err('rate-limit', `${sameDay.length} articles already published on ${day}; limit is ${maxPerDay}/day.`)]
+  return sameDay.length >= limit
+    ? [err('rate-limit', `${sameDay.length} articles already published on ${day}; limit is ${limit}/day.`)]
     : [];
 }
 
@@ -190,11 +231,11 @@ export function runPureChecks(article, ctx) {
     ...checkAnswerFirst(article),
     ...checkQuestionHeadings(article),
     ...checkInternalLinks(article, ctx),
-    ...checkNewsFreshness(article, { maxAgeDays: ctx.registry.balance.newsHookMaxAgeDays }),
+    ...checkNewsFreshness(article, { maxAgeDays: ctx.registry.balance.newsHookMaxAgeDays, asOf: ctx.asOf }),
     ...checkSubjectCap(article, ctx),
     ...checkClusterBalance(article, { ...ctx, maxShare: ctx.registry.balance.maxClusterShare }),
     ...checkClaimShape(article),
     ...checkDuplication(article, ctx),
-    ...checkRateLimit(article, { ...ctx, maxPerDay: ctx.registry.balance.maxPerDay }),
+    ...checkRateLimit(article, { ...ctx, maxPerDay: ctx.registry.balance.maxPerDay, dayLimits: ctx.registry.balance.dayLimits }),
   ];
 }

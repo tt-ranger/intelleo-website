@@ -15,6 +15,7 @@ export const SITE = {
     'Intelleo is a deep tech consulting firm. We turn AI into business value — from ML models in production to data pipelines, databases and RAG systems.',
   country: 'IN',
   defaultOgImage: '/og-default.png',
+  logo: '/logo.png',
   // Add profiles as they go live — `sameAs` is a primary entity-resolution
   // signal for both Google's Knowledge Graph and generative engines.
   sameAs: [] as string[],
@@ -25,6 +26,16 @@ export const AUTHOR = {
   email: 'sandeep@intelleo.in',
   jobTitle: 'Founder, Intelleo',
   url: 'https://www.intelleo.in/about',
+  // Founder profiles (LinkedIn, GitHub, talks). Same role as SITE.sameAs, for the Person entity.
+  sameAs: [] as string[],
+} as const;
+
+/** Trust pages. Referenced from the footer, article disclosures and Organization schema. */
+export const POLICY = {
+  editorial: '/editorial',
+  editorialPolicy: '/editorial-policy',
+  corrections: '/corrections',
+  experience: '/experience',
 } as const;
 
 /** Domain axis. Keys must stay in sync with the `cluster` enum and subjects.yaml. */

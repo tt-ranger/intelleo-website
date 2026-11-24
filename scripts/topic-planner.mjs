@@ -18,7 +18,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
-import { listPublished, loadRegistry, subjectCounts, clusterCounts, daysSince } from './lib/articles.mjs';
+import { listPublished, loadRegistry, subjectCounts, clusterCounts, daysSince, articlesInWindow } from './lib/articles.mjs';
 
 const argv = process.argv.slice(2);
 const flag = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
@@ -28,7 +28,7 @@ const OFFLINE = argv.includes('--offline');
 
 const registry = loadRegistry();
 const published = listPublished();
-const sCounts = subjectCounts(published);
+const sCounts = subjectCounts(articlesInWindow(published, registry.balance.subjectWindowDays));
 const cCounts = clusterCounts(published);
 const total = published.length;
 

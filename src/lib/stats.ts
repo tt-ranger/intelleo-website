@@ -26,7 +26,7 @@ function loadRegistry() {
   const subjects = Object.entries(reg.clusters).flatMap(([cluster, v]) =>
     v.subjects.map((s) => ({ id: s.id, cluster, cap: s.cap ?? defaultCap })),
   );
-  return { subjects, balance: { maxClusterShare: 0.35, minNewsHookShare: 0.4, ...(reg.balance ?? {}) } };
+  return { subjects, balance: { maxClusterShare: 0.35, minNewsHookShare: 0.4, subjectWindowDays: 90, ...(reg.balance ?? {}) } };
 }
 
 /** Rejected drafts written by the quality gate's --quarantine mode. */
@@ -51,8 +51,9 @@ export async function buildStats() {
 
   const counts: Record<string, number> = {};
   const clusters: Record<string, number> = {};
+  const windowStart = Date.now() - registry.balance.subjectWindowDays * 86_400_000;
   for (const p of posts) {
-    counts[p.data.subject] = (counts[p.data.subject] ?? 0) + 1;
+    if (p.data.publishDate.valueOf() > windowStart) counts[p.data.subject] = (counts[p.data.subject] ?? 0) + 1;
     clusters[p.data.cluster] = (clusters[p.data.cluster] ?? 0) + 1;
   }
 
@@ -92,6 +93,7 @@ export async function buildStats() {
 
   return {
     total,
+    subjectWindowDays: registry.balance.subjectWindowDays,
     last30: posts.filter((p) => p.data.publishDate.valueOf() >= thirtyDaysAgo).length,
     subjects,
     subjectsAtCap: subjects.filter((s) => s.state === 'full').length,

@@ -1,0 +1,66 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE, POLICY } from '../data/site';
+import '../styles/article.css';
+
+const schema = [{
+  '@type': 'WebPage',
+  '@id': `${SITE.url}${POLICY.editorialPolicy}#page`,
+  url: `${SITE.url}${POLICY.editorialPolicy}`,
+  name: 'Editorial policy',
+  isPartOf: { '@id': `${SITE.url}/#website` },
+  about: { '@id': `${SITE.url}/#organization` },
+}];
+---
+<Base
+  title="Editorial Policy & AI Use | Intelleo"
+  description="The standards Intelleo's articles are held to: sourcing, use of AI, independence, corrections and what we will not publish."
+  schema={schema}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">Policy</span>
+      <h1>Editorial policy</h1>
+      <p>The rules every article on this site is held to, whoever or whatever wrote it.</p>
+    </div>
+  </section>
+  <section style="padding-top:24px">
+    <div class="wrap article-inner prose">
+      <h2 id="ai-use">How do we use AI?</h2>
+      <p>
+        Articles bylined “Intelleo Editorial” are researched, written and checked by AI models in an automated
+        workflow, and are labelled as such on the page. <a href={POLICY.editorial}>How the workflow works</a> is
+        described in full. Articles bylined with a person's name are written by that person.
+      </p>
+
+      <h2 id="sourcing">What counts as a source?</h2>
+      <ul>
+        <li>Every material claim is tied to a dated source that is listed at the end of the article and linked inline.</li>
+        <li>News rests on a primary source: the organisation that made the announcement or published the work.</li>
+        <li>Disputed or consequential claims need corroboration from an independent organisation.</li>
+        <li>Vendor claims and preprints are attributed as such, not presented as established fact.</li>
+        <li>We do not invent quotes, benchmarks, or first-hand experience. Claims about Intelleo's own work come only
+          from case studies we have published under <a href={POLICY.experience}>Experience</a>.</li>
+      </ul>
+
+      <h2 id="independence">Are articles independent of commercial interests?</h2>
+      <p>
+        We do not accept payment for coverage, and no vendor reviews articles before publication.
+        Where an article discusses an area Intelleo offers services in, the article page says who we are.
+      </p>
+
+      <h2 id="corrections">How do corrections work?</h2>
+      <p>
+        When a verified factual error is found, we correct the article, keep the original publication date, add
+        a dated correction note, and list it on the <a href={POLICY.corrections}>corrections page</a>. We do not
+        silently change facts. To report an error, write to <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.
+      </p>
+
+      <h2 id="volume">How often do we publish?</h2>
+      <p>
+        At most one article a day, and only when a draft passes every check. Each subject is capped over a rolling
+        90 days so the site covers its areas in depth rather than repeating itself.
+      </p>
+    </div>
+  </section>
+</Base>

@@ -1,5 +1,5 @@
 ---
-import { SITE } from '../data/site';
+import { SITE, AUTHOR, POLICY } from '../data/site';
 
 interface Props {
   title: string;
@@ -33,8 +33,23 @@ const graph = [
     url: SITE.url,
     description: SITE.description,
     email: SITE.email,
+    logo: new URL(SITE.logo, SITE.url).href,
     address: { '@type': 'PostalAddress', addressCountry: SITE.country },
+    founder: { '@id': `${SITE.url}/#person-sandeep` },
+    // Trust signals: how content is produced, corrected and kept honest.
+    publishingPrinciples: new URL(POLICY.editorialPolicy, SITE.url).href,
+    correctionsPolicy: new URL(`${POLICY.editorialPolicy}#corrections`, SITE.url).href,
+    ethicsPolicy: new URL(`${POLICY.editorialPolicy}#ai-use`, SITE.url).href,
     ...(SITE.sameAs.length ? { sameAs: SITE.sameAs } : {}),
+  },
+  {
+    '@type': 'Person',
+    '@id': `${SITE.url}/#person-sandeep`,
+    name: AUTHOR.name,
+    jobTitle: AUTHOR.jobTitle,
+    url: AUTHOR.url,
+    worksFor: { '@id': `${SITE.url}/#organization` },
+    ...(AUTHOR.sameAs.length ? { sameAs: AUTHOR.sameAs } : {}),
   },
   {
     '@type': 'WebSite',

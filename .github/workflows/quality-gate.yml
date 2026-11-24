@@ -9,49 +9,46 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   gate:
+    name: content-quality
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: editorial_test
+          POSTGRES_PASSWORD: editorial-test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d editorial_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-
-      - name: Unit tests
-        run: node --test scripts/__tests__/*.test.mjs
-
-      # Full run including live citation verification. This is the merge
-      # gate: a fabricated or dead source URL fails the build here.
-      - name: Quality gate (with citation verification)
-        id: gate
-        run: node scripts/quality-gate.mjs --json > gate-report.json || true
-
-      - name: Summarise
+      - run: npm run test:gate
+        env:
+          PUBLISH_TEST_DATABASE_URL: postgresql://postgres:editorial-test@127.0.0.1:5432/editorial_test
+      - name: Validate changed articles and live citations
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          node -e '
-            const r = require("./gate-report.json").report.filter(x => !x.skipped);
-            const failed = r.filter(x => !x.passed);
-            const line = (i) => `- \`${i.code}\` ${i.message}`;
-            let md = `## Quality gate\n\n${r.length} checked · ${r.length - failed.length} passed · ${failed.length} failed\n`;
-            for (const a of r) {
-              if (a.passed && !a.warnings.length) continue;
-              md += `\n### ${a.passed ? "PASS (with warnings)" : "FAIL"} — ${a.slug}\n`;
-              md += a.errors.map(line).concat(a.warnings.map(line)).join("\n") + "\n";
-            }
-            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
-            if (failed.length) process.exit(1);
-          '
-
-      - name: Build
-        run: npm run build
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: gate-report
-          path: gate-report.json
+          if [ "$EVENT" = pull_request ]; then
+            base="$PR_BASE"
+          else
+            base="$(git merge-base HEAD origin/main)"
+          fi
+          npm run gate -- --base "$base"
+      - run: npm run build

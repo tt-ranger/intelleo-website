@@ -1,0 +1,11 @@
+name = "intelleo-publishing-clock"
+main = "worker.mjs"
+compatibility_date = "2026-11-24"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+GITHUB_REPOSITORY = "tt-ranger/intelleo-website"
+
+[triggers]
+# Hourly intake at the IST hour. An additional tick opens the 14:30 IST publishing slot.
+crons = ["30 * * * *", "0 9 * * *"]
