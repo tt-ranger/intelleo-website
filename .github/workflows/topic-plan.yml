@@ -1,10 +1,7 @@
 name: Topic plan
 
-# Emits the day's briefs as an issue for the writing agent to pick up.
-# Runs before the publishing window so briefs are fresh.
+# On-demand topic briefs. Scheduled collection belongs to editorial.yml.
 on:
-  schedule:
-    - cron: '30 1 * * *'   # 07:00 IST
   workflow_dispatch:
     inputs:
       count:
@@ -27,9 +24,11 @@ jobs:
       - run: npm ci
 
       - name: Generate briefs
+        env:
+          BRIEF_COUNT: ${{ inputs.count || 4 }}
         run: |
-          node scripts/topic-planner.mjs --count "${{ inputs.count || 4 }}" > briefs.txt
-          node scripts/topic-planner.mjs --count "${{ inputs.count || 4 }}" --json > briefs.json
+          node scripts/topic-planner.mjs --count "$BRIEF_COUNT" > briefs.txt
+          node scripts/topic-planner.mjs --count "$BRIEF_COUNT" --json > briefs.json
           cat briefs.txt
 
       - name: Open brief issue

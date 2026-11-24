@@ -72,6 +72,15 @@ const blog = defineCollection({
       /** First-hand benchmark or project metric — the most citable content type. */
       originalData: z.boolean().default(false),
       draft: z.boolean().default(false),
+      format: z.enum(['news', 'analysis', 'explainer']).optional(),
+      automated: z.boolean().default(false),
+      eventId: z.string().min(1).optional(),
+      hero: z.object({
+        src: z.string().regex(/^\/images\/editorial\/[a-z0-9-]+\.webp$/),
+        alt: z.string().min(12).max(200),
+        credit: z.string().min(1),
+      }).optional(),
+      correction: z.string().min(10).optional(),
     })
     .superRefine((data, ctx) => {
       const allowed = SUBJECTS_BY_CLUSTER[data.cluster] ?? [];
@@ -89,8 +98,38 @@ const blog = defineCollection({
           message: 'updatedDate cannot precede publishDate',
         });
       }
+      if (data.automated && (!data.format || !data.hero || !data.eventId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Automated articles require a format, event ID, and hero image.' });
+      }
+      if (data.format === 'news' && !data.newsHook) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newsHook'], message: 'News requires a verified news hook.' });
+      }
     }),
 });
 
-export const collections = { blog };
+/**
+ * Intelleo's first-hand experience: case studies, benchmarks, field notes.
+ * Written by Intelleo, published at /experience/<slug>, and offered to the
+ * writing agent as its only permitted source of "we" claims. Files starting
+ * with `_` are authoring templates and are never published.
+ */
+const experience = defineCollection({
+  loader: glob({ pattern: ['**/*.md', '!**/_*.md'], base: './src/content/experience' }),
+  schema: z
+    .object({
+      title: z.string().min(10).max(80),
+      description: z.string().min(50).max(155),
+      kind: z.enum(['case-study', 'benchmark', 'field-note']),
+      cluster: z.enum(['ai', 'ml', 'data', 'software-for-ai', 'geo']),
+      subjects: z.array(z.string().refine((s) => ALL_SUBJECTS.includes(s), {
+        message: 'subjects must be declared in src/data/subjects.yaml',
+      })).min(1),
+      publishDate: z.coerce.date(),
+      updatedDate: z.coerce.date().optional(),
+      author: z.string().default('Sandeep Katti'),
+      draft: z.boolean().default(false),
+    }),
+});
+
+export const collections = { blog, experience };
 export { SUBJECTS_BY_CLUSTER, ALL_SUBJECTS };

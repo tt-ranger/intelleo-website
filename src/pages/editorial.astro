@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE, AUTHOR, POLICY } from '../data/site';
+import '../styles/article.css';
+
+const schema = [{
+  '@type': 'Organization',
+  '@id': `${SITE.url}${POLICY.editorial}#team`,
+  name: 'Intelleo Editorial',
+  url: `${SITE.url}${POLICY.editorial}`,
+  parentOrganization: { '@id': `${SITE.url}/#organization` },
+  // Accountable for the workflow and its standards.
+  member: { '@id': `${SITE.url}/#person-sandeep` },
+  publishingPrinciples: `${SITE.url}${POLICY.editorialPolicy}`,
+}];
+---
+<Base
+  title="Intelleo Editorial — How Our Articles Are Made"
+  description="How Intelleo's automated editorial workflow finds sources, writes, fact-checks and publishes articles, and who is accountable for it."
+  schema={schema}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">Intelleo Editorial</span>
+      <h1>How our articles are made</h1>
+      <p>Articles bylined “Intelleo Editorial” are written by an automated workflow. This page explains it.</p>
+    </div>
+  </section>
+  <section style="padding-top:24px">
+    <div class="wrap article-inner prose">
+      <h2>Who is accountable?</h2>
+      <p>
+        {AUTHOR.name} ({AUTHOR.jobTitle}) owns the workflow, its rules and its output. Questions and
+        corrections go to <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.
+      </p>
+
+      <h2>Where does the material come from?</h2>
+      <p>
+        The workflow collects publisher feeds, release notes from open-source projects, and web search results
+        several times a day. Each source is scored for relevance, evidence, authority and freshness before it
+        can lead a story. News must rest on a primary source, and every article draws on at least three sources
+        from at least two independent organisations.
+      </p>
+      <p>
+        When an article describes Intelleo's own experience, that claim must come from a case study or field note
+        we have published under <a href={POLICY.experience}>Experience</a>. The workflow cannot claim experience
+        that is not documented there.
+      </p>
+
+      <h2>How is an article written and checked?</h2>
+      <ol>
+        <li>A research model prepares a brief: the reader, the decision they face, and the sources to use.</li>
+        <li>A writing model drafts the article and a ledger tying each material claim to an exact quoted passage.</li>
+        <li>Software checks that every quoted passage really appears in its source, that consequential claims are
+          independently corroborated, and that every link points to a listed source.</li>
+        <li>A different model fact-checks the full article against the source passages and blocks anything unsupported.</li>
+        <li>An editorial review rejects drafts that are generic, repetitive or do not answer their own headline.</li>
+        <li>A quality gate re-fetches every cited source, rejects near-duplicates of earlier articles, and caps
+          output at one article a day.</li>
+      </ol>
+      <p>A draft that fails any step is revised or discarded. On some days nothing is published.</p>
+
+      <h2>What happens when something is wrong?</h2>
+      <p>
+        The workflow re-reads the sources of recent articles daily. When a source shows a verified factual error,
+        the article is corrected and a dated note is added. All corrections are listed on the
+        <a href={POLICY.corrections}>corrections page</a>. See the <a href={POLICY.editorialPolicy}>editorial policy</a>
+        for the full rules.
+      </p>
+    </div>
+  </section>
+</Base>

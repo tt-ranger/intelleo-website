@@ -68,7 +68,7 @@ const subjectIds = [...new Set(s.subjects.map((x) => x.id))];
       </div>
 
       <div class="rv-bars">
-        <h2>Subject quotas</h2>
+        <h2>Subject quotas over {s.subjectWindowDays} days</h2>
         {s.subjects.map((x) => (
           <div class="bar-row">
             <span class="name" title={x.id}>{label(x.id)}</span>
@@ -79,8 +79,7 @@ const subjectIds = [...new Set(s.subjects.map((x) => x.id))];
           </div>
         ))}
         <p style="margin-top:14px;font-size:13px;color:var(--muted)">
-          Total remaining headroom: <strong>{s.headroom}</strong> articles. Add subjects to
-          <code>src/data/subjects.yaml</code> before this runs out.
+          Room for <strong>{s.headroom}</strong> more articles in the current window.
         </p>
       </div>
 

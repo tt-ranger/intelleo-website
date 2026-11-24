@@ -1,7 +1,7 @@
 ---
 import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { SITE, AUTHOR, CLUSTERS } from '../../data/site';
+import { SITE, AUTHOR, CLUSTERS, POLICY } from '../../data/site';
 import { getPublished, getRelated, formatDate, readingTime } from '../../lib/content';
 import '../../styles/article.css';
 
@@ -16,6 +16,20 @@ const { Content } = await render(post);
 const related = await getRelated(post);
 const url = new URL(`/blog/${post.id}`, SITE.url).href;
 const cluster = CLUSTERS[data.cluster];
+const author = data.automated ? {
+  '@type': 'Organization',
+  '@id': `${SITE.url}${POLICY.editorial}#team`,
+  name: 'Intelleo Editorial',
+  url: new URL(POLICY.editorial, SITE.url).href,
+  parentOrganization: { '@id': `${SITE.url}/#organization` },
+} : {
+  '@type': 'Person',
+  '@id': `${SITE.url}/#person-sandeep`,
+  name: data.author,
+  jobTitle: AUTHOR.jobTitle,
+  email: AUTHOR.email,
+  worksFor: { '@id': `${SITE.url}/#organization` },
+};
 
 const schema: Record<string, unknown>[] = [
   {
@@ -28,15 +42,12 @@ const schema: Record<string, unknown>[] = [
     dateModified: (data.updatedDate ?? data.publishDate).toISOString(),
     inLanguage: 'en',
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
-    author: {
-      '@type': 'Person',
-      '@id': `${SITE.url}/#person-sandeep`,
-      name: AUTHOR.name,
-      jobTitle: AUTHOR.jobTitle,
-      email: AUTHOR.email,
-      worksFor: { '@id': `${SITE.url}/#organization` },
-    },
+    author,
+    // A named person is accountable for the editorial standards automated articles are held to.
+    ...(data.automated && { editor: { '@id': `${SITE.url}/#person-sandeep` } }),
+    ...(data.hero && { image: new URL(data.hero.src, SITE.url).href }),
     publisher: { '@id': `${SITE.url}/#organization` },
+    publishingPrinciples: new URL(POLICY.editorialPolicy, SITE.url).href,
     about: cluster.label,
     keywords: data.tags.join(', '),
     // Citations are a documented driver of generative-engine trust.
@@ -74,6 +85,7 @@ if (data.faq.length > 0) {
   title={data.title}
   description={data.description}
   ogType="article"
+  ogImage={data.hero?.src}
   schema={schema}
 >
   <article class="article">
@@ -92,8 +104,23 @@ if (data.faq.length > 0) {
         <time datetime={data.publishDate.toISOString()}>{formatDate(data.publishDate)}</time>
         {data.updatedDate && <span>Updated {formatDate(data.updatedDate)}</span>}
         <span>{readingTime(post.body ?? '')} min read</span>
-        <span>{AUTHOR.name}</span>
+        <span>{author.name}</span>
       </div>
+
+      {data.hero && (
+        <figure class="article-hero">
+          <img src={data.hero.src} alt={data.hero.alt} width="1200" height="630" />
+          <figcaption class="muted">{data.hero.credit}</figcaption>
+        </figure>
+      )}
+
+      {data.automated && (
+        <p class="muted">
+          Produced and reviewed with Intelleo’s <a href={POLICY.editorial}>automated editorial workflow</a>,
+          under our <a href={POLICY.editorialPolicy}>editorial policy</a>.
+        </p>
+      )}
+      {data.correction && <p class="muted"><a href={POLICY.corrections}>{data.correction}</a></p>}
 
       <div class="answer">
         <span class="k">In short</span>

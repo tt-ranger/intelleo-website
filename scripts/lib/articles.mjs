@@ -20,7 +20,10 @@ export function parseArticle(inputPath) {
   // Resolve to absolute so paths given on the CLI compare correctly against
   // BLOG_DIR (quarantine depends on that check).
   const path = resolve(inputPath);
-  const raw = readFileSync(path, 'utf8');
+  return parseArticleText(readFileSync(path, 'utf8'), path);
+}
+
+export function parseArticleText(raw, path) {
   const m = raw.match(FRONTMATTER);
   if (!m) throw new Error(`${path}: missing YAML frontmatter`);
   let data;
@@ -58,6 +61,7 @@ export function loadRegistry() {
       maxClusterShare: 0.35,
       minNewsHookShare: 0.4,
       newsHookMaxAgeDays: 30,
+      subjectWindowDays: 90,
       maxPerDay: 4,
       ...(reg.balance ?? {}),
     },
@@ -79,6 +83,20 @@ export function wordCount(body) {
 
 export function daysSince(date) {
   return (Date.now() - new Date(date).getTime()) / 86_400_000;
+}
+
+export function articlesInWindow(articles, days, asOf = Date.now()) {
+  const end = new Date(asOf).valueOf();
+  return articles.filter(({ data }) => {
+    const age = end - new Date(data.publishDate).valueOf();
+    return age >= 0 && age < days * 86_400_000;
+  });
+}
+
+export function editorialDay(value = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(value));
 }
 
 /** Subject -> published count. Drives cap enforcement and the /review bars. */

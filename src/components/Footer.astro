@@ -1,5 +1,5 @@
 ---
-import { CLUSTERS, CLUSTER_IDS } from '../data/site';
+import { CLUSTERS, CLUSTER_IDS, POLICY } from '../data/site';
 const year = new Date().getFullYear();
 ---
 <footer>
@@ -8,6 +8,12 @@ const year = new Date().getFullYear();
     <nav class="foot-links" aria-label="Topics">
       {CLUSTER_IDS.map((id) => <a href={`/topics/${id}`}>{CLUSTERS[id].label}</a>)}
       <a href="/blog">Insights</a>
+    </nav>
+    <nav class="foot-links" aria-label="Company">
+      <a href="/about">About</a>
+      <a href={POLICY.experience}>Experience</a>
+      <a href={POLICY.editorialPolicy}>Editorial policy</a>
+      <a href={POLICY.corrections}>Corrections</a>
     </nav>
     <span class="mono">idea → model → production</span>
   </div>

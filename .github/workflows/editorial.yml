@@ -1,0 +1,47 @@
+name: Editorial publishing
+
+on:
+  repository_dispatch:
+    types: [editorial-tick]
+  workflow_dispatch:
+    inputs:
+      command:
+        type: choice
+        options: [preflight, tick]
+        default: preflight
+
+concurrency:
+  group: editorial-publishing
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publishing:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+      PUBLISH_DB_ROOT_CERT: ${{ secrets.PUBLISH_DB_ROOT_CERT }}
+      LITELLM_URL: ${{ secrets.LITELLM_URL }}
+      LITELLM_KEY: ${{ secrets.LITELLM_KEY }}
+      LITELLM_PRICE_MULTIPLIER: ${{ vars.LITELLM_PRICE_MULTIPLIER || '1.15' }}
+      YOU_DOT_COM_API_KEY: ${{ secrets.YOU_DOT_COM_API_KEY }}
+      PUBLISH_GITHUB_APP_ID: ${{ vars.PUBLISH_GITHUB_APP_ID }}
+      PUBLISH_GITHUB_INSTALLATION_ID: ${{ vars.PUBLISH_GITHUB_INSTALLATION_ID }}
+      PUBLISH_GITHUB_APP_PRIVATE_KEY: ${{ secrets.PUBLISH_GITHUB_APP_PRIVATE_KEY }}
+      PUBLISH_MODE: ${{ vars.PUBLISH_MODE || 'shadow' }}
+      PUBLISH_COMMAND: ${{ inputs.command || 'tick' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+      - run: npm ci
+      - run: npm run publisher -- "$PUBLISH_COMMAND"

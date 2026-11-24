@@ -1,0 +1,53 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE, POLICY } from '../data/site';
+import { getPublished, formatDate } from '../lib/content';
+import '../styles/article.css';
+
+const corrected = (await getPublished())
+  .filter(({ data }) => data.correction)
+  .sort((a, b) => (b.data.updatedDate ?? b.data.publishDate).valueOf() - (a.data.updatedDate ?? a.data.publishDate).valueOf());
+
+const schema = [{
+  '@type': 'WebPage',
+  '@id': `${SITE.url}${POLICY.corrections}#page`,
+  url: `${SITE.url}${POLICY.corrections}`,
+  name: 'Corrections',
+  isPartOf: { '@id': `${SITE.url}/#website` },
+}];
+---
+<Base
+  title="Corrections | Intelleo"
+  description="Every factual correction made to an Intelleo article, with the date and what changed."
+  schema={schema}
+>
+  <section class="page-head">
+    <div class="wrap">
+      <span class="eyebrow">Corrections</span>
+      <h1>Corrections</h1>
+      <p>Every factual correction made to a published article. See our <a href={`${POLICY.editorialPolicy}#corrections`}>corrections policy</a>.</p>
+    </div>
+  </section>
+  <section style="padding-top:24px">
+    <div class="wrap">
+      {corrected.length === 0 ? (
+        <p class="muted">No corrections have been needed so far.</p>
+      ) : (
+        <ul class="post-list">
+          {corrected.map((post) => (
+            <li>
+              <a class="post-link" href={`/blog/${post.id}`}>
+                <div class="row">
+                  <span>Published {formatDate(post.data.publishDate)}</span>
+                  {post.data.updatedDate && <span>Corrected {formatDate(post.data.updatedDate)}</span>}
+                </div>
+                <h2>{post.data.title}</h2>
+                <p>{post.data.correction}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+</Base>

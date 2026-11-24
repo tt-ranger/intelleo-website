@@ -91,6 +91,25 @@ export async function GET(_context: APIContext) {
           { name: 'publishDate', label: 'Publish date', widget: 'datetime', date_format: 'YYYY-MM-DD', time_format: false, required: true },
           { name: 'updatedDate', label: 'Updated date', widget: 'datetime', date_format: 'YYYY-MM-DD', time_format: false, required: false },
           { name: 'author', label: 'Author', widget: 'string', default: AUTHOR.name, required: false },
+          {
+            name: 'format', label: 'Article format', widget: 'select', required: false,
+            options: [
+              { label: 'News', value: 'news' },
+              { label: 'Analysis', value: 'analysis' },
+              { label: 'Explainer', value: 'explainer' },
+            ],
+          },
+          { name: 'automated', label: 'Automated authorship', widget: 'boolean', required: false },
+          { name: 'eventId', label: 'Editorial event ID', widget: 'string', required: false },
+          {
+            name: 'hero', label: 'Editorial hero', widget: 'object', required: false, collapsed: true,
+            fields: [
+              { name: 'src', label: 'WebP path', widget: 'string' },
+              { name: 'alt', label: 'Alt text', widget: 'string' },
+              { name: 'credit', label: 'Image credit', widget: 'string' },
+            ],
+          },
+          { name: 'correction', label: 'Correction note', widget: 'string', required: false },
           { name: 'tags', label: 'Tags', widget: 'list', required: false, default: [] },
           {
             name: 'sources', label: 'Sources', widget: 'list', required: true,
@@ -127,7 +146,7 @@ export async function GET(_context: APIContext) {
           { name: 'draft', label: 'Draft', widget: 'boolean', default: false, required: false },
           {
             name: 'body', label: 'Body', widget: 'markdown', required: true,
-            hint: 'Minimum 1200 words. At least half of H2 headings must end in "?". Must link to the cluster pillar (/topics/...) and 2+ sibling articles.',
+            hint: 'Minimum 500 words for news and 1200 for longer formats. At least half of H2 headings must end in "?". Link to the cluster pillar and to two sibling articles when available.',
           },
         ],
       },

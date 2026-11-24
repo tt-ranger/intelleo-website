@@ -12,7 +12,9 @@
     "plan": "node scripts/topic-planner.mjs",
     "stats": "node scripts/content-stats.mjs",
     "test:gate": "node --test scripts/__tests__/*.test.mjs",
-    "ci": "bash scripts/ci-local.sh"
+    "review": "node --env-file-if-exists=.env scripts/publisher.mjs review",
+    "ci": "bash scripts/ci-local.sh",
+    "publisher": "node --env-file-if-exists=.env scripts/publisher.mjs"
   },
   "dependencies": {
     "@astrojs/partytown": "^2.1.4",
@@ -20,5 +22,17 @@
     "@astrojs/sitemap": "^3.2.1",
     "astro": "^5.1.1",
     "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "ai": "^7.0.109",
+    "ajv": "^8.20.0",
+    "cheerio": "^1.1.2",
+    "ipaddr.js": "^2.5.0",
+    "pg": "^8.23.1",
+    "remark-parse": "^11.0.0",
+    "sharp": "^0.35.5",
+    "undici": "^6.29.1",
+    "unified": "^11.0.5"
   }
 }

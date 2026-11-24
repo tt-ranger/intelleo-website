@@ -25,10 +25,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Offline: citation URLs are verified at merge time by quality-gate.yml.
-      # Re-checking every source on every deploy is slow and flaky.
-      - name: Quality gate
-        run: node scripts/quality-gate.mjs --offline
       - name: Build
         run: npm run build
         env:
