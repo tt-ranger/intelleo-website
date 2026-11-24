@@ -39,11 +39,14 @@ export async function checkPostgres(db) {
     await db.query('insert into editorial.refreshes (id) values ($1) on conflict do nothing', [refreshWindow(now).id]);
     await tick(db, () => assert.fail('The empty source pool must make no model calls.'), { now, env: {} });
   }
-  const slots = await db.query("select id, state from editorial.slots where editorial_day='2026-11-24' order by id");
-  assert.deepEqual(slots.rows, [
-    { id: '2026-11-24-afternoon', state: 'new' },
-    { id: '2026-11-24-morning', state: 'missed' },
-  ]);
+  const daySlots = async () => (await db.query("select id, state from editorial.slots where editorial_day='2026-11-24' order by id")).rows;
+  // Nothing opens before 14:30 IST; repeated ticks in the window are idempotent.
+  assert.deepEqual(await daySlots(), [{ id: '2026-11-24-daily', state: 'new' }]);
+  // An unfilled slot is marked missed once its window closes at midnight IST.
+  const closed = Date.parse('2026-11-24T18:30:00Z');
+  await db.query('insert into editorial.refreshes (id) values ($1) on conflict do nothing', [refreshWindow(closed).id]);
+  await tick(db, () => assert.fail('The empty source pool must make no model calls.'), { now: closed, env: {} });
+  assert.deepEqual(await daySlots(), [{ id: '2026-11-24-daily', state: 'missed' }]);
 }
 
 test('Postgres migration, transactional caps and lease recovery', { skip: !process.env.PUBLISH_TEST_DATABASE_URL }, async () => {
